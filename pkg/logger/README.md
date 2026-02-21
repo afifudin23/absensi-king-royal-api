@@ -1,3 +1,3 @@
 # pkg/logger
 
-Helper logging terpusat untuk aplikasi.
+Centralized logging helpers.

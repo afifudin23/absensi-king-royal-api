@@ -1,3 +1,3 @@
 # pkg
 
-Reusable helper/package umum yang bisa dipakai lintas layer.
+Reusable helper packages shared across layers.

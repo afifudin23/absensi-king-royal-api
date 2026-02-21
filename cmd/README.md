@@ -1,3 +1,3 @@
 # cmd
 
-Berisi executable entry points aplikasi.
+Contains executable entry points for the application.

@@ -1,3 +1,3 @@
 # internal/delivery/http
 
-Implementasi interface HTTP menggunakan Gin.
+HTTP delivery/interface implementation using Gin.

@@ -1,3 +1,3 @@
 # internal/delivery/http/router
 
-Definisi route, group route, dan registrasi handler.
+Route definitions, route groups, and handler registration.

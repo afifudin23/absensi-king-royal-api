@@ -1,3 +1,3 @@
 # test
 
-Kumpulan test terpisah berdasarkan jenis pengujian.
+Test directories separated by testing type.

@@ -1,3 +1,3 @@
 # docs
 
-Dokumentasi teknis project, API, dan operasional.
+Technical documentation for project architecture, API, and operations.

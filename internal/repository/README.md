@@ -1,3 +1,3 @@
 # internal/repository
 
-Akses persistence layer (DB/cache/external storage).
+Persistence layer access (database/cache/external storage).

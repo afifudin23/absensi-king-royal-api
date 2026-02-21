@@ -1,3 +1,3 @@
 # internal/delivery/http/request
 
-Struct request DTO dan aturan validasi input endpoint.
+Request DTO structs and input validation rules per endpoint.

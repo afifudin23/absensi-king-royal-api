@@ -1,3 +1,3 @@
 # internal/service
 
-Business logic/use case yang mengorkestrasi model dan repository.
+Business logic/use cases orchestrating models and repositories.

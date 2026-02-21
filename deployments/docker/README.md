@@ -1,3 +1,3 @@
 # deployments/docker
 
-Konfigurasi container untuk build dan run aplikasi.
+Container configuration for building and running the app.

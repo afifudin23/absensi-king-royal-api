@@ -1,3 +1,3 @@
 # internal/delivery/http/middleware
 
-Middleware HTTP seperti auth, logging, recovery, CORS, rate-limit.
+HTTP middleware such as auth, logging, recovery, CORS, and rate limiting.

@@ -1,3 +1,3 @@
 # test/mock
 
-Mock/fake object untuk membantu pengujian.
+Mock/fake objects used for testing.

@@ -1,3 +1,3 @@
 # internal/delivery/http/handler
 
-HTTP handler/controller untuk menerima request dan memanggil service.
+HTTP handlers/controllers for receiving requests and calling services.

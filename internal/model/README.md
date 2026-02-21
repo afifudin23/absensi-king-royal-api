@@ -1,3 +1,3 @@
 # internal/model
 
-Definisi model/entity data bisnis aplikasi.
+Core domain/entity model definitions.

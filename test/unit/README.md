@@ -1,3 +1,3 @@
 # test/unit
 
-Unit test terisolasi untuk fungsi atau service.
+Isolated unit tests for functions and services.

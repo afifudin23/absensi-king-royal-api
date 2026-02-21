@@ -1,3 +1,3 @@
 # test/integrations
 
-Integration test untuk verifikasi antar komponen nyata.
+Integration tests to verify behavior across real components.

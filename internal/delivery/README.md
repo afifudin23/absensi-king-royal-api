@@ -1,3 +1,3 @@
 # internal/delivery
 
-Layer delivery/interface untuk expose use case ke luar (HTTP, dll).
+Delivery/interface layer that exposes use cases (HTTP, etc).

@@ -1,0 +1,53 @@
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Build artifacts
+# =========================
+/bin/
+/dist/
+/release
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# =========================
+# Runtime / temporary files
+# =========================
+/tmp/
+*.log
+
+# =========================
+# Go workspace files
+# =========================
+go.work
+go.work.sum
+
+# =========================
+# Coverage files
+# =========================
+coverage.out
+*.coverprofile
+
+# =========================
+# Editor / IDE
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =========================
+# OS generated files
+# =========================
+.DS_Store
+Thumbs.db

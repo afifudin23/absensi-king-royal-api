@@ -1,3 +1,8 @@
 # internal/bootstrap
 
-Inisialisasi komponen saat startup (wiring dependency, server, DB, dll).
+Application startup bootstrap and dependency wiring.
+
+Use this folder for:
+- initializing infrastructure dependencies,
+- wiring services/repositories/handlers,
+- preparing app startup flow.

@@ -1,3 +1,3 @@
 # deployments
 
-Kumpulan aset deployment per platform/environment.
+Deployment assets per platform/environment.

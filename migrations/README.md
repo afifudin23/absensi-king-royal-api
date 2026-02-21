@@ -1,3 +1,3 @@
 # migrations
 
-Berisi migrasi schema database.
+Database schema migration files.
