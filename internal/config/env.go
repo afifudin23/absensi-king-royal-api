@@ -11,6 +11,7 @@ import (
 type EnvConfig struct {
 	AppName     string
 	DatabaseURL string
+	AccessKey   string
 	Port        string
 }
 
@@ -27,6 +28,11 @@ func LoadEnv() (*EnvConfig, error) {
 		return nil, fmt.Errorf("DATABASE_URL is required")
 	}
 
+	accessKey := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	if accessKey == "" {
+		accessKey = "dev-secret-change-me"
+	}
+
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
 		port = "8080"
@@ -38,6 +44,7 @@ func LoadEnv() (*EnvConfig, error) {
 	return &EnvConfig{
 		AppName:     appName,
 		DatabaseURL: databaseURL,
+		AccessKey:   accessKey,
 		Port:        port,
 	}, nil
 }

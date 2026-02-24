@@ -7,6 +7,8 @@ import (
 	"log"
 	"reflect"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -30,7 +32,7 @@ func CheckTypeError(typeError *json.UnmarshalTypeError, errorMap map[string]stri
 		errorMap[field] = field + " has invalid type"
 	}
 
-	return errorMap
+	return capitalizeErrorMessages(errorMap)
 }
 
 func ErrorValidation(err error) map[string]string {
@@ -39,7 +41,7 @@ func ErrorValidation(err error) map[string]string {
 	// Body kosong
 	if errors.Is(err, io.EOF) {
 		errorsMap["request"] = "Request body is required"
-		return errorsMap
+		return capitalizeErrorMessages(errorsMap)
 	}
 
 	// Salah tipe data (json unmarshal)
@@ -66,15 +68,35 @@ func ErrorValidation(err error) map[string]string {
 				errorsMap[field] = field + " does not match " + strings.ToLower(fieldErr.Param())
 			case "datetime":
 				errorsMap[field] = field + " must be a valid datetime format, must be 'YYYY-MM-DDTHH:MM:SS±HH:MM'"
+			case "email":
+				errorsMap[field] = field + " must be a valid email"
 			default:
 				errorsMap[field] = field + " is invalid"
 			}
 		}
-		return errorsMap
+		return capitalizeErrorMessages(errorsMap)
 	}
 
 	// FALLBACK
 	log.Println(err)
 	errorsMap["request"] = "Invalid request payload"
+	return capitalizeErrorMessages(errorsMap)
+}
+
+func capitalizeErrorMessages(errorsMap map[string]string) map[string]string {
+	for key, value := range errorsMap {
+		errorsMap[key] = capitalizeFirst(value)
+	}
 	return errorsMap
+}
+
+func capitalizeFirst(text string) string {
+	if text == "" {
+		return text
+	}
+	r, size := utf8.DecodeRuneInString(text)
+	if r == utf8.RuneError && size == 0 {
+		return text
+	}
+	return string(unicode.ToUpper(r)) + text[size:]
 }

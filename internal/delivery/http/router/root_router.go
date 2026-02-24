@@ -6,5 +6,5 @@ import (
 )
 
 func registerRootRoutes(rg *gin.RouterGroup) {
-	rg.GET("/", handler.Root)
+	rg.GET("", handler.Root)
 }

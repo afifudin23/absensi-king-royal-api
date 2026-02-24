@@ -8,9 +8,18 @@ import (
 )
 
 func main() {
-	env, err := config.LoadEnv()
-	if err != nil {
-		log.Fatalf("failed to load env: %v", err)
+	if err := config.Init(); err != nil {
+		log.Fatalf("failed to initialize app context: %v", err)
+	}
+	defer func() {
+		if err := config.CloseDB(); err != nil {
+			log.Printf("failed to close database: %v", err)
+		}
+	}()
+
+	env := config.GetEnv()
+	if env == nil {
+		log.Fatalf("failed to read app env")
 	}
 
 	r := router.New()

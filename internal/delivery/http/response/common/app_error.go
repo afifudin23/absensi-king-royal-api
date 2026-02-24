@@ -41,6 +41,7 @@ func NewAppError(statusCode int, code ErrorCode, message string, details any) *A
 func UnauthorizedError(message string) *AppError {
 	return NewAppError(http.StatusUnauthorized, AUTH_REQUIRED, message, nil)
 }
+
 func ForbiddenError(message string) *AppError {
 	return NewAppError(http.StatusForbidden, FORBIDDEN, message, nil)
 }

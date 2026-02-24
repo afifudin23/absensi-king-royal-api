@@ -1,6 +1,8 @@
 package router
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 func New() *gin.Engine {
 	r := gin.Default()
@@ -10,6 +12,7 @@ func New() *gin.Engine {
 
 	registerHealthRoutes(v1)
 	registerRootRoutes(v1)
+	registerAuthRoutes(v1)
 
 	return r
 }
