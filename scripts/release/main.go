@@ -205,7 +205,7 @@ func chooseVersion(bumpType string, major, minor, patch int) string {
 		Items: items,
 		Size:  5,
 		Templates: &promptui.SelectTemplates{
-			Active: `{{ if eq .Key "patch" }}{{ "▸ patch" | green }}{{ else if eq .Key "minor" }}{{ "▸ minor" | cyan }}{{ else if eq .Key "major" }}{{ "▸ major" | red }}{{ else }}{{ "▸" | cyan }} {{ .Key }}{{ end }}{{ if .Version }} {{ "->" | faint }} {{ if eq .Key "patch" }}{{ .Version | green }}{{ else if eq .Key "minor" }}{{ .Version | cyan }}{{ else if eq .Key "major" }}{{ .Version | red }}{{ else }}{{ .Version }}{{ end }}{{ end }}`,
+			Active:   `{{ if eq .Key "patch" }}{{ "▸ patch" | green }}{{ else if eq .Key "minor" }}{{ "▸ minor" | cyan }}{{ else if eq .Key "major" }}{{ "▸ major" | red }}{{ else }}{{ "▸" | cyan }} {{ .Key }}{{ end }}{{ if .Version }} {{ "->" | faint }} {{ if eq .Key "patch" }}{{ .Version | green }}{{ else if eq .Key "minor" }}{{ .Version | cyan }}{{ else if eq .Key "major" }}{{ .Version | red }}{{ else }}{{ .Version }}{{ end }}{{ end }}`,
 			Inactive: `{{ if eq .Key "patch" }}{{ "  patch" | green }}{{ else if eq .Key "minor" }}{{ "  minor" | cyan }}{{ else if eq .Key "major" }}{{ "  major" | red }}{{ else }}  {{ .Key }}{{ end }}{{ if .Version }} {{ "->" | faint }} {{ if eq .Key "patch" }}{{ .Version | green }}{{ else if eq .Key "minor" }}{{ .Version | cyan }}{{ else if eq .Key "major" }}{{ .Version | red }}{{ else }}{{ .Version }}{{ end }}{{ end }}`,
 			Selected: `{{ "✔" | green }} {{ .Key }}{{ if .Version }} {{ "->" | faint }} {{ .Version }}{{ end }}`,
 		},
