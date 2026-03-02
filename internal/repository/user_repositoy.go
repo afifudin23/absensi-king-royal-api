@@ -11,10 +11,10 @@ import (
 
 type UserRepository interface {
 	GetAll() ([]model.User, error)
-	GetByID(id string) (model.User, error)
-	GetByEmail(email string) (model.User, error)
-	Create(user model.User) (model.User, error)
-	Update(user model.User) (model.User, error)
+	GetByID(id string) (*model.User, error)
+	GetByEmail(email string) (*model.User, error)
+	Create(user *model.User) error
+	Update(user *model.User) error
 	Delete(id string) error
 }
 
@@ -32,39 +32,37 @@ func (r *userRepository) GetAll() ([]model.User, error) {
 	return users, err
 }
 
-func (r *userRepository) GetByID(id string) (model.User, error) {
+func (r *userRepository) GetByID(id string) (*model.User, error) {
 	var user model.User
 	err := r.db.
 		Where("id = ?", id).
 		Take(&user).Error
 	if err != nil {
-		return model.User{}, err
+		return nil, err
 	}
-	return user, nil
+	return &user, nil
 }
 
-func (r *userRepository) GetByEmail(email string) (model.User, error) {
+func (r *userRepository) GetByEmail(email string) (*model.User, error) {
 	var user model.User
 	err := r.db.
 		Where("email = ?", strings.ToLower(strings.TrimSpace(email))).
 		Take(&user).Error
 	if err != nil {
-		return model.User{}, err
+		return nil, err
 	}
-	return user, nil
+	return &user, nil
 }
 
-func (r *userRepository) Create(user model.User) (model.User, error) {
-	if strings.TrimSpace(user.Email) == "" {
-		return model.User{}, errors.New("User is required")
+func (r *userRepository) Create(user *model.User) error {
+	if user == nil || strings.TrimSpace(user.Email) == "" {
+		return errors.New("User is required")
 	}
-	err := r.db.Create(&user).Error
-	return user, err
+	return r.db.Create(user).Error
 }
 
-func (r *userRepository) Update(user model.User) (model.User, error) {
-	err := r.db.Save(&user).Error
-	return user, err
+func (r *userRepository) Update(user *model.User) error {
+	return r.db.Save(user).Error
 }
 
 func (r *userRepository) Delete(id string) error {

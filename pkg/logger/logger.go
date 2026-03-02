@@ -2,84 +2,167 @@ package logger
 
 import (
 	"context"
-	"log/slog"
+	"encoding/json"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
-// ctxKey untuk menyimpan request id di context
 type ctxKey string
 
-const RequestIDKey ctxKey = "request_id"
+const (
+	requestIDKey ctxKey = "request_id"
+	userIDKey    ctxKey = "user_id"
+)
 
-type Config struct {
-	AppName   string // contoh: "absensi-king-royal-api"
-	Env       string // "dev" | "prod"
-	Level     string // "debug"|"info"|"warn"|"error"
-	AddSource bool   // tampilkan file:line
+type outputLog struct {
+	Timestamp   string         `json:"timestamp"`
+	Level       string         `json:"level"`
+	Service     string         `json:"service"`
+	Environment string         `json:"environment"`
+	RequestID   string         `json:"request_id,omitempty"`
+	UserID      any            `json:"user_id,omitempty"`
+	Message     string         `json:"message"`
+	LoggerName  string         `json:"logger_name"`
+	HTTP        any            `json:"http,omitempty"`
+	Payload     any            `json:"payload,omitempty"`
+	Error       any            `json:"error,omitempty"`
+	Event       any            `json:"event,omitempty"`
+	Context     map[string]any `json:"context,omitempty"`
 }
 
-// New membuat logger slog dengan handler sesuai env
-func New(cfg Config) *slog.Logger {
-	level := parseLevel(cfg.Level)
+var (
+	mu          sync.RWMutex
+	serviceName = "absensi-king-royal-api"
+	environment = "local"
+)
 
-	opts := &slog.HandlerOptions{
-		Level:     level,
-		AddSource: cfg.AddSource,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			// Biar field time jadi rapi (RFC3339)
-			if a.Key == slog.TimeKey {
-				if t, ok := a.Value.Any().(time.Time); ok {
-					a.Value = slog.StringValue(t.UTC().Format(time.RFC3339Nano))
-				}
-			}
-			return a
-		},
+func Configure(service string, env string) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if strings.TrimSpace(service) != "" {
+		serviceName = strings.TrimSpace(service)
 	}
 
-	var handler slog.Handler
-	if strings.ToLower(cfg.Env) == "dev" {
-		// Text handler lebih enak dibaca di local dev
-		handler = slog.NewTextHandler(os.Stdout, opts)
+	normalizedEnv := strings.ToLower(strings.TrimSpace(env))
+	if normalizedEnv == "" {
+		normalizedEnv = "local"
+	}
+	environment = normalizedEnv
+}
+
+func WithRequestID(ctx context.Context, requestID string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, requestIDKey, strings.TrimSpace(requestID))
+}
+
+func WithUserID(ctx context.Context, userID string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithValue(ctx, userIDKey, strings.TrimSpace(userID))
+}
+
+func Info(ctx context.Context, loggerName, message string, fields map[string]any) {
+	log(ctx, "INFO", loggerName, message, fields)
+}
+
+func Warn(ctx context.Context, loggerName, message string, fields map[string]any) {
+	log(ctx, "WARNING", loggerName, message, fields)
+}
+
+func Error(ctx context.Context, loggerName, message string, fields map[string]any) {
+	log(ctx, "ERROR", loggerName, message, fields)
+}
+
+func log(ctx context.Context, level, loggerName, message string, fields map[string]any) {
+	svc, env := currentConfig()
+	entry := outputLog{
+		Timestamp:   time.Now().UTC().Format(time.RFC3339Nano),
+		Level:       level,
+		Service:     svc,
+		Environment: env,
+		Message:     message,
+		LoggerName:  loggerName,
+	}
+
+	if ctx != nil {
+		if v, ok := ctx.Value(requestIDKey).(string); ok && strings.TrimSpace(v) != "" {
+			entry.RequestID = v
+		}
+		if v, ok := ctx.Value(userIDKey).(string); ok && strings.TrimSpace(v) != "" {
+			entry.UserID = v
+		}
+	}
+
+	if fields != nil {
+		// Reserved structured fields
+		if v, ok := fields["http"]; ok {
+			entry.HTTP = v
+			delete(fields, "http")
+		}
+		if v, ok := fields["payload"]; ok && env != "local" {
+			entry.Payload = v
+			delete(fields, "payload")
+		}
+		if v, ok := fields["error"]; ok {
+			entry.Error = v
+			delete(fields, "error")
+		}
+		if v, ok := fields["event"]; ok {
+			entry.Event = v
+			delete(fields, "event")
+		}
+		if v, ok := fields["request_id"]; ok {
+			entry.RequestID = anyToString(v)
+			delete(fields, "request_id")
+		}
+		if v, ok := fields["user_id"]; ok {
+			entry.UserID = v
+			delete(fields, "user_id")
+		}
+		if len(fields) > 0 {
+			entry.Context = fields
+		}
+	}
+
+	write(entry, env)
+}
+
+func currentConfig() (string, string) {
+	mu.RLock()
+	defer mu.RUnlock()
+	return serviceName, environment
+}
+
+func write(entry outputLog, env string) {
+	var out []byte
+	var err error
+
+	if env == "local" {
+		out, err = json.MarshalIndent(entry, "", "  ")
 	} else {
-		// JSON handler cocok untuk production (ELK/Loki/Cloud Logging)
-		handler = slog.NewJSONHandler(os.Stdout, opts)
+		out, err = json.Marshal(entry)
 	}
-
-	base := slog.New(handler).With(
-		"app", cfg.AppName,
-		"env", cfg.Env,
-	)
-
-	return base
+	if err != nil {
+		return
+	}
+	_, _ = os.Stdout.Write(append(out, '\n'))
 }
 
-// WithRequestID mengembalikan logger yang sudah punya request_id dari context
-func WithRequestID(ctx context.Context, log *slog.Logger) *slog.Logger {
-	if ctx == nil || log == nil {
-		return log
-	}
-	if rid, ok := ctx.Value(RequestIDKey).(string); ok && rid != "" {
-		return log.With("request_id", rid)
-	}
-	return log
-}
-
-// SetRequestID simpan request ID ke context
-func SetRequestID(ctx context.Context, requestID string) context.Context {
-	return context.WithValue(ctx, RequestIDKey, requestID)
-}
-
-func parseLevel(lvl string) slog.Level {
-	switch strings.ToLower(strings.TrimSpace(lvl)) {
-	case "debug":
-		return slog.LevelDebug
-	case "warn", "warning":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
+func anyToString(v any) string {
+	switch t := v.(type) {
+	case string:
+		return t
 	default:
-		return slog.LevelInfo
+		b, err := json.Marshal(v)
+		if err != nil {
+			return ""
+		}
+		return strings.Trim(string(b), "\"")
 	}
 }

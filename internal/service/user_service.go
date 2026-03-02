@@ -40,14 +40,14 @@ func (s *userService) CreateUser(payload model.User) (*model.User, error) {
 		payload.Password = hashedPassword
 	}
 
-	user, err := s.userRepo.Create(payload)
-	if err != nil {
+	user := &payload
+	if err := s.userRepo.Create(user); err != nil {
 		if isDuplicateError(err) {
 			return nil, common.BadRequestError("Email is already registered")
 		}
 		return nil, err
 	}
-	return &user, nil
+	return user, nil
 }
 
 func (s *userService) GetUserByID(UserID string) (*model.User, error) {
@@ -58,7 +58,7 @@ func (s *userService) GetUserByID(UserID string) (*model.User, error) {
 		}
 		return nil, err
 	}
-	return &user, nil
+	return user, nil
 }
 
 func (s *userService) UpdateUser(UserID string, payload model.User) (*model.User, error) {
@@ -78,15 +78,14 @@ func (s *userService) UpdateUser(UserID string, payload model.User) (*model.User
 		payload.Password = hashedPassword
 	}
 
-	applyUserUpdates(&user, payload)
-	user, err = s.userRepo.Update(user)
-	if err != nil {
+	applyUserUpdates(user, payload)
+	if err := s.userRepo.Update(user); err != nil {
 		if isDuplicateError(err) {
 			return nil, common.BadRequestError("Email is already registered")
 		}
 		return nil, err
 	}
-	return &user, nil
+	return user, nil
 }
 
 func (s *userService) DeleteUser(UserID string) error {

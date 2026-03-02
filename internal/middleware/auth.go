@@ -7,6 +7,7 @@ import (
 	"github.com/afifudin23/absensi-king-royal-api/internal/config"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
+	"github.com/afifudin23/absensi-king-royal-api/pkg/logger"
 	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -72,6 +73,8 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Set user id from token claims for downstream handlers.
 		c.Set("uid", user.ID)
+		ctx := logger.WithUserID(c.Request.Context(), user.ID)
+		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}
 }

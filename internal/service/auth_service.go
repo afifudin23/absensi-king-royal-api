@@ -38,22 +38,21 @@ func (s *authService) Register(payload request.AuthRegisterRequest) (*model.User
 		return nil, err
 	}
 
-	user := model.User{
+	user := &model.User{
 		FullName: payload.FullName,
 		Email:    payload.Email,
 		Password: string(hashed),
 		Role:     "user",
 	}
 
-	user, err = s.userRepo.Create(user)
-	if err != nil {
+	if err := s.userRepo.Create(user); err != nil {
 		if isDuplicateError(err) {
 			return nil, ErrEmailAlreadyRegistered
 		}
 		return nil, err
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 func (s *authService) Login(payload request.AuthLoginRequest) (*model.User, string, error) {
@@ -78,7 +77,7 @@ func (s *authService) Login(payload request.AuthLoginRequest) (*model.User, stri
 		return nil, "", err
 	}
 
-	return &user, token, nil
+	return user, token, nil
 }
 
 type DeletedAccountError struct {

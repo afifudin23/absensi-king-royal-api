@@ -4,6 +4,57 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.0] - 2026-03-03
+
+### Added
+
+- Attendance module:
+  - `POST /api/v1/attendance/check-in`
+  - `POST /api/v1/attendance/check-out`
+  - `GET /api/v1/attendance/logs`
+- Attendance domain implementation:
+  - Model: `internal/model/attendance_model.go`
+  - Repository: `internal/repository/attendance_repository.go`
+  - Service: `internal/service/attendance_service.go`
+  - Handler: `internal/delivery/http/handler/attendance_handler.go`
+  - Response DTO: `internal/delivery/http/response/attendance_response.go`
+  - Router registration: `internal/delivery/http/router/attendance_route.go`
+- Attendance migration:
+  - `migrations/20260302162641_add_attendance_table.up.sql`
+  - `migrations/20260302162641_add_attendance_table.down.sql`
+  - Includes unique key per user per date (`uq_attendances_user_id_date`).
+- Centralized structured logger package with simple API:
+  - `logger.Configure(...)`
+  - `logger.Info(...)`
+  - `logger.Warn(...)`
+  - `logger.Error(...)`
+
+### Changed
+
+- Request logging middleware now uses centralized structured logger and emits consistent JSON log fields:
+  - `timestamp`, `level`, `service`, `environment`, `request_id`, `user_id`, `message`, `logger_name`, `http`
+- Router middleware stack now uses `StructuredLoggingMiddleware()` (replacing `gin.Logger()`).
+- Auth middleware now propagates `user_id` into logger context for downstream logs.
+- App startup now configures logger using env config (`cmd/api/main.go`).
+- Environment config now includes `ENVIRONMENT` (`internal/config/env.go`).
+- User repository/service refactored to pointer-based signatures for create/read/update consistency with GORM best practice.
+- User response helper names standardized:
+  - `ToUserResponse`
+  - `ToUserListResponse`
+  - `ToUserSuccessResponse`
+- `.env.example` updated and standardized:
+  - Adds `ENVIRONMENT`
+  - Uses `ACCESS_KEY`
+  - Uses quoted values for consistency.
+
+### Migration Required
+
+- Yes.
+- Run:
+  - `make migrate-up`
+
+---
+
 ## [0.2.0] - 2026-03-02
 
 ### Added

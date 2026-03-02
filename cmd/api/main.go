@@ -5,6 +5,7 @@ import (
 
 	"github.com/afifudin23/absensi-king-royal-api/internal/config"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/router"
+	"github.com/afifudin23/absensi-king-royal-api/pkg/logger"
 )
 
 func main() {
@@ -21,6 +22,7 @@ func main() {
 	if env == nil {
 		log.Fatalf("failed to read app env")
 	}
+	logger.Configure(env.AppName, env.Environment)
 
 	r := router.New()
 

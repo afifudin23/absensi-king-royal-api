@@ -25,7 +25,7 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 		common.ErrorHandler(c, common.InternalServerError())
 		return
 	}
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToListResponse(users)))
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToUserListResponse(users)))
 }
 
 func (h *UserHandler) GetMyProfile(c *gin.Context) {
@@ -40,7 +40,7 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 		common.ErrorHandler(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToResponse(*user)))
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToUserResponse(*user)))
 }
 
 func (h *UserHandler) UpdateMyProfile(c *gin.Context) {
@@ -82,7 +82,7 @@ func (h *UserHandler) UpdateMyProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToSuccessResponse(user.ID)))
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToUserSuccessResponse(user.ID)))
 }
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
@@ -117,7 +117,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		common.ErrorHandler(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, common.SuccessResponse(response.ToSuccessResponse(user.ID)))
+	c.JSON(http.StatusCreated, common.SuccessResponse(response.ToUserSuccessResponse(user.ID)))
 }
 
 func (h *UserHandler) GetUserByID(c *gin.Context) {
@@ -127,7 +127,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		common.ErrorHandler(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToResponse(*user)))
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToUserResponse(*user)))
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
@@ -162,7 +162,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToSuccessResponse(user.ID)))
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToUserSuccessResponse(user.ID)))
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
@@ -172,7 +172,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		common.ErrorHandler(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToSuccessResponse(userID)))
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToUserSuccessResponse(userID)))
 }
 
 func stringValue(value *string) string {

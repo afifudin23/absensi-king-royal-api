@@ -33,7 +33,7 @@ type SuccessResponse struct {
 	ID string `json:"id"`
 }
 
-func ToResponse(user model.User) UserResponse {
+func ToUserResponse(user model.User) UserResponse {
 	return UserResponse{
 		ID:                user.ID,
 		FullName:          user.FullName,
@@ -57,14 +57,14 @@ func ToResponse(user model.User) UserResponse {
 	}
 }
 
-func ToListResponse(users []model.User) []UserResponse {
+func ToUserListResponse(users []model.User) []UserResponse {
 	var response []UserResponse
 	for _, user := range users {
-		response = append(response, ToResponse(user))
+		response = append(response, ToUserResponse(user))
 	}
 	return response
 }
 
-func ToSuccessResponse(id string) SuccessResponse {
+func ToUserSuccessResponse(id string) SuccessResponse {
 	return SuccessResponse{ID: id}
 }

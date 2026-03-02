@@ -9,7 +9,7 @@ func New() *gin.Engine {
 	r := gin.New()
 
 	r.Use(
-		gin.Logger(),
+		middleware.StructuredLoggingMiddleware(),
 		middleware.RecoveryMiddleware(),
 		middleware.ErrorMiddleware(),
 	)
@@ -21,6 +21,7 @@ func New() *gin.Engine {
 	registerRootRoutes(v1)
 	registerAuthRoutes(v1)
 	registerUserRouter(v1)
+	registerAttendanceRoutes(v1)
 
 	return r
 }

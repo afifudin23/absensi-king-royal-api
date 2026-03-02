@@ -10,6 +10,7 @@ import (
 
 type EnvConfig struct {
 	AppName     string
+	Environment string
 	DatabaseURL string
 	AccessKey   string
 	Port        string
@@ -21,6 +22,11 @@ func LoadEnv() (*EnvConfig, error) {
 	appName := strings.TrimSpace(os.Getenv("APP_NAME"))
 	if appName == "" {
 		appName = "absensi-king-royal-api"
+	}
+
+	environment := strings.ToLower(strings.TrimSpace(os.Getenv("ENVIRONMENT")))
+	if environment == "" {
+		return nil, fmt.Errorf("ENVIRONMENT is required")
 	}
 
 	databaseURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
@@ -43,6 +49,7 @@ func LoadEnv() (*EnvConfig, error) {
 
 	return &EnvConfig{
 		AppName:     appName,
+		Environment: environment,
 		DatabaseURL: databaseURL,
 		AccessKey:   accessKey,
 		Port:        port,
