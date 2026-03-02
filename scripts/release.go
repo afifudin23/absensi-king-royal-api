@@ -171,6 +171,11 @@ func commitAndPush(newVersion string) {
 }
 
 func chooseVersion(bumpType string, major, minor, patch int) string {
+	type releaseChoice struct {
+		Key     string
+		Version string
+	}
+
 	current := fmt.Sprintf("%d.%d.%d", major, minor, patch)
 	vPatch := fmt.Sprintf("%d.%d.%d", major, minor, patch+1)
 	vMinor := fmt.Sprintf("%d.%d.%d", major, minor+1, 0)
@@ -187,33 +192,42 @@ func chooseVersion(bumpType string, major, minor, patch int) string {
 		return vMajor
 	}
 
-	items := []string{
-		fmt.Sprintf("patch -> %s", vPatch),
-		fmt.Sprintf("minor -> %s", vMinor),
-		fmt.Sprintf("major -> %s", vMajor),
-		"custom",
-		"cancel",
+	items := []releaseChoice{
+		{Key: "patch", Version: vPatch},
+		{Key: "minor", Version: vMinor},
+		{Key: "major", Version: vMajor},
+		{Key: "custom"},
+		{Key: "cancel"},
 	}
 
 	prompt := promptui.Select{
 		Label: "Choose bump type (use up/down arrows)",
 		Items: items,
 		Size:  5,
+		Templates: &promptui.SelectTemplates{
+			Active: `{{ if eq .Key "patch" }}{{ "▸ patch" | green }}{{ else if eq .Key "minor" }}{{ "▸ minor" | cyan }}{{ else if eq .Key "major" }}{{ "▸ major" | red }}{{ else }}{{ "▸" | cyan }} {{ .Key }}{{ end }}{{ if .Version }} {{ "->" | faint }} {{ if eq .Key "patch" }}{{ .Version | green }}{{ else if eq .Key "minor" }}{{ .Version | cyan }}{{ else if eq .Key "major" }}{{ .Version | red }}{{ else }}{{ .Version }}{{ end }}{{ end }}`,
+			Inactive: `{{ if eq .Key "patch" }}{{ "  patch" | green }}{{ else if eq .Key "minor" }}{{ "  minor" | cyan }}{{ else if eq .Key "major" }}{{ "  major" | red }}{{ else }}  {{ .Key }}{{ end }}{{ if .Version }} {{ "->" | faint }} {{ if eq .Key "patch" }}{{ .Version | green }}{{ else if eq .Key "minor" }}{{ .Version | cyan }}{{ else if eq .Key "major" }}{{ .Version | red }}{{ else }}{{ .Version }}{{ end }}{{ end }}`,
+			Selected: `{{ "✔" | green }} {{ .Key }}{{ if .Version }} {{ "->" | faint }} {{ .Version }}{{ end }}`,
+		},
 	}
 
-	_, selected, err := prompt.Run()
+	idx, _, err := prompt.Run()
 	if err != nil {
+		if errors.Is(err, promptui.ErrInterrupt) || errors.Is(err, promptui.ErrEOF) {
+			fmt.Printf("%s❌ Canceled.%s\n", colorYellow, colorReset)
+			return ""
+		}
 		exitErr(fmt.Errorf("failed to choose version: %w", err))
 	}
 
-	switch selected {
-	case items[0]:
+	switch idx {
+	case 0:
 		return vPatch
-	case items[1]:
+	case 1:
 		return vMinor
-	case items[2]:
+	case 2:
 		return vMajor
-	case "custom":
+	case 3:
 		customPrompt := promptui.Prompt{
 			Label: "Enter custom version (x.y.z)",
 			Validate: func(input string) error {
