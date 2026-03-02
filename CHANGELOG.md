@@ -4,6 +4,44 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.0] - 2026-03-02
+
+### Added
+
+- User management module:
+  - `POST /api/v1/users`
+  - `GET /api/v1/users`
+  - `GET /api/v1/users/:user_id`
+  - `PUT /api/v1/users/:user_id`
+  - `DELETE /api/v1/users/:user_id`
+  - `GET /api/v1/users/me`
+  - `PUT /api/v1/users/me`
+- User service and request/response DTOs:
+  - `internal/service/user_service.go`
+  - `internal/delivery/http/request/user_request.go`
+  - `internal/delivery/http/response/user_response.go`
+- Global middleware package:
+  - `internal/middleware/auth.go`
+  - `internal/middleware/error.go`
+- Shared service error helpers:
+  - `internal/service/errors.go`
+
+### Changed
+
+- Authentication flow now uses bearer token verification with centralized env access key (`pkg/utils/jwt.go`, `internal/service/auth_service.go`).
+- Auth middleware now validates token format, verifies JWT, and checks active (non-deleted) user existence before continuing request (`internal/middleware/auth.go`).
+- Router structure updated to register user routes and new root route file naming (`internal/delivery/http/router/router.go`, `internal/delivery/http/router/user_route.go`, `internal/delivery/http/router/root_route.go`).
+- Auth handlers and user handlers improved for validation handling and payload normalization order.
+- Repository and service layers improved for duplicate email error mapping and password hashing on create/update.
+
+### Fixed
+
+- Prevented nil pointer panic on deleted-account login handling.
+- Prevented inconsistent error response behavior for middleware-thrown errors.
+- Fixed update endpoint binding issues that previously caused `422 Invalid request body` for valid JSON payloads.
+
+---
+
 ## [0.1.1] - 2026-02-24
 
 ### Added
@@ -47,6 +85,8 @@ All notable changes to this project are documented in this file.
 - Yes.
 - Run:
   - `make migrate-up`
+
+---
 
 ## [0.1.0] - 2026-02-21
 

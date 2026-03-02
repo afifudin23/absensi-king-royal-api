@@ -23,6 +23,7 @@ func main() {
 	}
 
 	r := router.New()
+
 	log.Printf("starting %s on %s", env.AppName, env.Port)
 	if err := r.Run(env.Port); err != nil {
 		log.Fatalf("failed to run server: %v", err)

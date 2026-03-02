@@ -1,6 +1,6 @@
 package response
 
-type UserResponse struct {
+type UserData struct {
 	ID        string `json:"id"`
 	FullName  string `json:"full_name"`
 	Email     string `json:"email"`
@@ -10,7 +10,23 @@ type UserResponse struct {
 }
 
 type LoginResponse struct {
-	AccessToken string       `json:"access_token"`
-	TokenType   string       `json:"token_type"`
-	User        UserResponse `json:"user"`
+	AccessToken string   `json:"access_token"`
+	TokenType   string   `json:"token_type"`
+	User        UserData `json:"user"`
+}
+
+type RegisterResponse struct {
+	ID string `json:"id"`
+}
+
+func ToLoginResponse(user UserData, accessToken string) LoginResponse {
+	return LoginResponse{
+		AccessToken: accessToken,
+		TokenType:   "Bearer",
+		User:        user,
+	}
+}
+
+func ToRegisterResponse(id string) RegisterResponse {
+	return RegisterResponse{ID: id}
 }

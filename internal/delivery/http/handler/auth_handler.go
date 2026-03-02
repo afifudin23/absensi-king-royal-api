@@ -16,47 +16,40 @@ type AuthHandler struct {
 	Service service.AuthService
 }
 
-func NewAuthHandler(service service.AuthService) *AuthHandler {
-	return &AuthHandler{Service: service}
+func NewAuthHandler() *AuthHandler {
+	return &AuthHandler{Service: service.NewAuthService()}
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
 	var payload request.AuthRegisterRequest
-	payload.Normalize()
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		common.ErrorHandler(c, common.ValidationError(common.ErrorValidation(err)))
 		return
 	}
+	payload.Normalize()
 
 	user, err := h.Service.Register(payload)
 	if err != nil {
 		if errors.Is(err, service.ErrEmailAlreadyRegistered) {
-			common.ErrorHandler(c, common.BadRequestError("Email is already registered"))
+			common.ErrorHandler(c, common.BadRequestError(err.Error()))
 			return
 		}
 		common.ErrorHandler(c, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, common.SuccessResponse(response.UserResponse{
-		ID:        user.ID,
-		FullName:  user.FullName,
-		Email:     user.Email,
-		Role:      user.Role,
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
-	}))
+	c.JSON(http.StatusCreated, common.SuccessResponse(response.ToRegisterResponse(user.ID)))
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
 	var payload request.AuthLoginRequest
-	payload.Normalize()
 
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		common.ErrorHandler(c, common.ValidationError(common.ErrorValidation(err)))
 		return
 	}
+	payload.Normalize()
 
 	user, token, err := h.Service.Login(payload)
 	if err != nil {
@@ -86,18 +79,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, common.SuccessResponse(response.LoginResponse{
-		AccessToken: token,
-		TokenType:   "Bearer",
-		User: response.UserResponse{
-			ID:        user.ID,
-			FullName:  user.FullName,
-			Email:     user.Email,
-			Role:      user.Role,
-			CreatedAt: user.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
-		},
-	}))
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToLoginResponse(response.UserData{
+		ID:        user.ID,
+		FullName:  user.FullName,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+	}, token)))
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {

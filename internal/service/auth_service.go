@@ -2,10 +2,8 @@ package service
 
 import (
 	"errors"
-	"strings"
 	"time"
 
-	"github.com/afifudin23/absensi-king-royal-api/internal/config"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
@@ -49,7 +47,7 @@ func (s *authService) Register(payload request.AuthRegisterRequest) (*model.User
 
 	user, err = s.userRepo.Create(user)
 	if err != nil {
-		if isDuplicateEmailError(err) {
+		if isDuplicateError(err) {
 			return nil, ErrEmailAlreadyRegistered
 		}
 		return nil, err
@@ -75,23 +73,13 @@ func (s *authService) Login(payload request.AuthLoginRequest) (*model.User, stri
 		return nil, "", ErrInvalidCredentials
 	}
 
-	token, err := utils.GenerateAccessToken(config.GetEnv().AccessKey, utils.TokenClaims{
-		Subject: user.ID,
-		Email:   user.Email,
-		Role:    user.Role,
-		Exp:     time.Now().Add(24 * time.Hour).Unix(),
-	})
+	token, err := utils.GenerateAccessToken(user.ID)
 	if err != nil {
 		return nil, "", err
 	}
 
 	return &user, token, nil
 }
-
-var (
-	ErrEmailAlreadyRegistered = errors.New("Email is already registered")
-	ErrInvalidCredentials     = errors.New("Email or password is invalid, please try again")
-)
 
 type DeletedAccountError struct {
 	DeletedAt time.Time
@@ -104,12 +92,4 @@ func NewDeletedAccountError(deletedAt time.Time, email string) *DeletedAccountEr
 
 func (e *DeletedAccountError) Error() string {
 	return "Account has been deleted"
-}
-
-func isDuplicateEmailError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "duplicate") || strings.Contains(msg, "1062")
 }

@@ -28,7 +28,7 @@ func LoadEnv() (*EnvConfig, error) {
 		return nil, fmt.Errorf("DATABASE_URL is required")
 	}
 
-	accessKey := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	accessKey := strings.TrimSpace(os.Getenv("ACCESS_KEY"))
 	if accessKey == "" {
 		accessKey = "dev-secret-change-me"
 	}

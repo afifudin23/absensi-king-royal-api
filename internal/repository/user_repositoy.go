@@ -15,7 +15,7 @@ type UserRepository interface {
 	GetByEmail(email string) (model.User, error)
 	Create(user model.User) (model.User, error)
 	Update(user model.User) (model.User, error)
-	Delete(id string) (bool, error)
+	Delete(id string) error
 }
 
 type userRepository struct {
@@ -67,7 +67,7 @@ func (r *userRepository) Update(user model.User) (model.User, error) {
 	return user, err
 }
 
-func (r *userRepository) Delete(id string) (bool, error) {
+func (r *userRepository) Delete(id string) error {
 	err := r.db.Delete(&model.User{}, "id = ?", id).Error
-	return err == nil, err
+	return err
 }
