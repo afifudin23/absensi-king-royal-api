@@ -8,6 +8,7 @@ import (
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/service"
+	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,13 +30,11 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 }
 
 func (h *UserHandler) GetMyProfile(c *gin.Context) {
-	uid, exists := c.Get("uid")
-	if !exists {
-		c.Error(common.UnauthorizedError("Unauthorized, please login again"))
-		c.Abort()
+	userID, ok := utils.GetCurrentUserID(c)
+	if !ok {
 		return
 	}
-	user, err := h.Service.GetUserByID(uid.(string))
+	user, err := h.Service.GetUserByID(userID)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
@@ -82,7 +81,7 @@ func (h *UserHandler) UpdateMyProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToUserSuccessResponse(user.ID)))
+	c.JSON(http.StatusOK, common.SuccessResponse(common.ToSuccessResponse(user.ID)))
 }
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
@@ -117,7 +116,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		common.ErrorHandler(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, common.SuccessResponse(response.ToUserSuccessResponse(user.ID)))
+	c.JSON(http.StatusCreated, common.SuccessResponse(common.ToSuccessResponse(user.ID)))
 }
 
 func (h *UserHandler) GetUserByID(c *gin.Context) {
@@ -162,7 +161,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToUserSuccessResponse(user.ID)))
+	c.JSON(http.StatusOK, common.SuccessResponse(common.ToSuccessResponse(user.ID)))
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
@@ -172,7 +171,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		common.ErrorHandler(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToUserSuccessResponse(userID)))
+	c.JSON(http.StatusOK, common.SuccessResponse(common.ToSuccessResponse(userID)))
 }
 
 func stringValue(value *string) string {

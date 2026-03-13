@@ -27,3 +27,11 @@ func ErrorResponse[T any](errSchema ErrorSchema) Response[T] {
 		Error:   &errSchema,
 	}
 }
+
+type ActionSuccessResponse struct {
+	ID string `json:"id"`
+}
+
+func ToSuccessResponse(id string) ActionSuccessResponse {
+	return ActionSuccessResponse{ID: id}
+}

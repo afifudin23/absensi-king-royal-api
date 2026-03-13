@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/afifudin23/absensi-king-royal-api/internal/database"
 	"gorm.io/gorm"
 )
 
 var (
-	once     sync.Once
-	initErr  error
-	appEnv   *EnvConfig
-	database *gorm.DB
+	once    sync.Once
+	initErr error
+	appEnv  *EnvConfig
+	db      *gorm.DB
 )
 
 func Init() error {
@@ -22,7 +23,7 @@ func Init() error {
 			return
 		}
 
-		database, initErr = OpenMySQL(appEnv.DatabaseURL)
+		db, initErr = database.OpenMySQL(appEnv.DatabaseURL)
 		if initErr != nil {
 			initErr = fmt.Errorf("connect database: %w", initErr)
 			return
@@ -37,14 +38,14 @@ func GetEnv() *EnvConfig {
 }
 
 func GetDB() *gorm.DB {
-	return database
+	return db
 }
 
 func CloseDB() error {
-	if database == nil {
+	if db == nil {
 		return nil
 	}
-	sqlDB, err := database.DB()
+	sqlDB, err := db.DB()
 	if err != nil {
 		return err
 	}

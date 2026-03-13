@@ -29,10 +29,6 @@ type UserResponse struct {
 	UpdatedAt         string     `json:"updated_at"`
 }
 
-type SuccessResponse struct {
-	ID string `json:"id"`
-}
-
 func ToUserResponse(user model.User) UserResponse {
 	return UserResponse{
 		ID:                user.ID,
@@ -58,13 +54,9 @@ func ToUserResponse(user model.User) UserResponse {
 }
 
 func ToUserListResponse(users []model.User) []UserResponse {
-	var response []UserResponse
+	response := make([]UserResponse, 0, len(users))
 	for _, user := range users {
 		response = append(response, ToUserResponse(user))
 	}
 	return response
-}
-
-func ToUserSuccessResponse(id string) SuccessResponse {
-	return SuccessResponse{ID: id}
 }

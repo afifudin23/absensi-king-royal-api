@@ -66,6 +66,5 @@ func (r *userRepository) Update(user *model.User) error {
 }
 
 func (r *userRepository) Delete(id string) error {
-	err := r.db.Delete(&model.User{}, "id = ?", id).Error
-	return err
+	return r.db.Delete(&model.User{}, "id = ?", id).Error
 }

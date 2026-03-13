@@ -8,13 +8,12 @@ import (
 	"reflect"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
 )
 
 func CheckTypeError(typeError *json.UnmarshalTypeError, errorMap map[string]string) map[string]string {
-	field := strings.ToLower(typeError.Field)
+	field := normalizeFieldName(typeError.Field)
 	if field == "" {
 		field = "request"
 	}
@@ -32,7 +31,7 @@ func CheckTypeError(typeError *json.UnmarshalTypeError, errorMap map[string]stri
 		errorMap[field] = field + " has invalid type"
 	}
 
-	return capitalizeErrorMessages(errorMap)
+	return errorMap
 }
 
 func ErrorValidation(err error) map[string]string {
@@ -41,7 +40,7 @@ func ErrorValidation(err error) map[string]string {
 	// Body kosong
 	if errors.Is(err, io.EOF) {
 		errorsMap["request"] = "Request body is required"
-		return capitalizeErrorMessages(errorsMap)
+		return errorsMap
 	}
 
 	// Salah tipe data (json unmarshal)
@@ -53,7 +52,7 @@ func ErrorValidation(err error) map[string]string {
 	// Validation errors (binding tag)
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
 		for _, fieldErr := range validationErrors {
-			field := strings.ToLower(fieldErr.Field())
+			field := normalizeFieldName(fieldErr.Field())
 
 			switch fieldErr.Tag() {
 			case "uuid":
@@ -70,33 +69,44 @@ func ErrorValidation(err error) map[string]string {
 				errorsMap[field] = field + " must be a valid datetime format, must be 'YYYY-MM-DDTHH:MM:SS±HH:MM'"
 			case "email":
 				errorsMap[field] = field + " must be a valid email"
+			case "oneof":
+				errorsMap[field] = field + " must be one of: " + strings.ReplaceAll(fieldErr.Param(), " ", ", ")
 			default:
 				errorsMap[field] = field + " is invalid"
 			}
 		}
-		return capitalizeErrorMessages(errorsMap)
+		return errorsMap
 	}
 
 	// FALLBACK
 	log.Println(err)
 	errorsMap["request"] = "Invalid request payload"
-	return capitalizeErrorMessages(errorsMap)
-}
-
-func capitalizeErrorMessages(errorsMap map[string]string) map[string]string {
-	for key, value := range errorsMap {
-		errorsMap[key] = capitalizeFirst(value)
-	}
 	return errorsMap
 }
 
-func capitalizeFirst(text string) string {
-	if text == "" {
-		return text
+func normalizeFieldName(field string) string {
+	if field == "" {
+		return ""
 	}
-	r, size := utf8.DecodeRuneInString(text)
-	if r == utf8.RuneError && size == 0 {
-		return text
+
+	parts := strings.Split(field, ".")
+	field = parts[len(parts)-1]
+	field = strings.TrimSpace(field)
+	if field == "" {
+		return ""
 	}
-	return string(unicode.ToUpper(r)) + text[size:]
+
+	var builder strings.Builder
+	for i, r := range field {
+		if unicode.IsUpper(r) {
+			if i > 0 {
+				builder.WriteByte('_')
+			}
+			builder.WriteRune(unicode.ToLower(r))
+			continue
+		}
+		builder.WriteRune(unicode.ToLower(r))
+	}
+
+	return builder.String()
 }

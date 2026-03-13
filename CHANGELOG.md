@@ -4,6 +4,64 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.0] - 2026-03-13
+
+### Added
+
+- Leave request module:
+  - `POST /api/v1/leave-requests`
+  - `GET /api/v1/leave-requests`
+  - `GET /api/v1/leave-requests/me`
+  - `GET /api/v1/leave-requests/:leave_id`
+  - `PUT /api/v1/leave-requests/:leave_id`
+  - `DELETE /api/v1/leave-requests/:leave_id`
+- Leave request domain implementation:
+  - Model: `internal/model/leave_request_model.go`
+  - Repository: `internal/repository/leave_request_repository.go`
+  - Service: `internal/service/leave_request_service.go`
+  - Handler: `internal/delivery/http/handler/leave_request_handler.go`
+  - Request DTO: `internal/delivery/http/request/leave_request.go`
+  - Response DTO: `internal/delivery/http/response/leave_response.go`
+  - Router registration: `internal/delivery/http/router/leave_request_route.go`
+- Leave request migration:
+  - `migrations/20260312034410_create_leave_requests_table.up.sql`
+  - `migrations/20260312034410_create_leave_requests_table.down.sql`
+- Seeder bootstrap:
+  - `internal/database/seeder/user_seed.go`
+  - `scripts/seeder/main.go`
+
+### Changed
+
+- App database bootstrap moved into dedicated package `internal/database/database.go`, and app context now uses the centralized DB initializer.
+- Air config now watches `.env`, so env changes trigger reload during development.
+- Common success response now includes reusable action payload helper:
+  - `common.ToSuccessResponse(...)`
+- User and attendance handlers now reuse shared `utils.GetCurrentUserID(...)` to remove duplicated auth context parsing.
+- User response flow simplified to use shared action success response payloads.
+- User service/repository cleanup:
+  - parameter naming normalized,
+  - redundant delete variable removed,
+  - update flow kept consistent with existing partial update rules.
+- Attendance migration naming standardized from `add_attendance_table` to `create_attendances_table`.
+
+### Fixed
+
+- Validation error field names now use API-facing `snake_case` keys such as `start_date` and `end_date`.
+- Validation error messages no longer capitalize field names and now show explicit enum options for `oneof` failures.
+- Leave request list response now returns `[]` instead of `null` when empty.
+- Leave request create/update handlers now validate date-only input (`YYYY-MM-DD`) consistently and stop execution after returning bad-request responses.
+- Leave request update flow now supports safe partial updates without nil pointer dereference and without resetting status unintentionally.
+- Leave request `GetByID`, update, and delete flows now use explicit UUID filtering and proper not-found handling.
+- User seed passwords are now hashed consistently for both default seeded accounts.
+
+### Migration Required
+
+- Yes.
+- Run:
+  - `make migrate-up`
+
+---
+
 ## [0.3.0] - 2026-03-03
 
 ### Added

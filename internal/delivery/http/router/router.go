@@ -22,6 +22,7 @@ func New() *gin.Engine {
 	registerAuthRoutes(v1)
 	registerUserRouter(v1)
 	registerAttendanceRoutes(v1)
+	registerLeaveRequestRoutes(v1)
 
 	return r
 }

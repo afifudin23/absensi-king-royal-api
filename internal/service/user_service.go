@@ -10,9 +10,9 @@ import (
 type UserService interface {
 	GetAllUsers() ([]model.User, error)
 	CreateUser(payload model.User) (*model.User, error)
-	GetUserByID(UserID string) (*model.User, error)
-	UpdateUser(UserID string, payload model.User) (*model.User, error)
-	DeleteUser(UserID string) error
+	GetUserByID(userID string) (*model.User, error)
+	UpdateUser(userID string, payload model.User) (*model.User, error)
+	DeleteUser(userID string) error
 }
 
 type userService struct {
@@ -50,8 +50,8 @@ func (s *userService) CreateUser(payload model.User) (*model.User, error) {
 	return user, nil
 }
 
-func (s *userService) GetUserByID(UserID string) (*model.User, error) {
-	user, err := s.userRepo.GetByID(UserID)
+func (s *userService) GetUserByID(userID string) (*model.User, error) {
+	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		if isNotFoundError(err) {
 			return nil, common.BadRequestError("User not found")
@@ -61,8 +61,8 @@ func (s *userService) GetUserByID(UserID string) (*model.User, error) {
 	return user, nil
 }
 
-func (s *userService) UpdateUser(UserID string, payload model.User) (*model.User, error) {
-	user, err := s.userRepo.GetByID(UserID)
+func (s *userService) UpdateUser(userID string, payload model.User) (*model.User, error) {
+	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		if isNotFoundError(err) {
 			return nil, common.BadRequestError("User not found")
@@ -88,15 +88,15 @@ func (s *userService) UpdateUser(UserID string, payload model.User) (*model.User
 	return user, nil
 }
 
-func (s *userService) DeleteUser(UserID string) error {
-	_, err := s.userRepo.GetByID(UserID)
+func (s *userService) DeleteUser(userID string) error {
+	_, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		if isNotFoundError(err) {
 			return common.BadRequestError("User not found")
 		}
 		return err
 	}
-	return s.userRepo.Delete(UserID)
+	return s.userRepo.Delete(userID)
 }
 
 func applyUserUpdates(existing *model.User, payload model.User) {
@@ -126,7 +126,7 @@ func applyUserUpdates(existing *model.User, payload model.User) {
 		existing.BirthDate = payload.BirthDate
 	}
 	if payload.Gender != nil {
-		existing.Gender = payload.Gender
+		existing.Gender = payload.Gender	
 	}
 	if payload.Address != nil {
 		existing.Address = payload.Address

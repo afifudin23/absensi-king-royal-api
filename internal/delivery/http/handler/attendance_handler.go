@@ -7,6 +7,7 @@ import (
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/service"
 	"github.com/afifudin23/absensi-king-royal-api/pkg/logger"
+	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,7 +20,7 @@ func NewAttendanceHandler() *AttendanceHandler {
 }
 
 func (h *AttendanceHandler) CheckIn(c *gin.Context) {
-	userID, ok := getCurrentUserID(c)
+	userID, ok := utils.GetCurrentUserID(c)
 	if !ok {
 		return
 	}
@@ -34,7 +35,7 @@ func (h *AttendanceHandler) CheckIn(c *gin.Context) {
 }
 
 func (h *AttendanceHandler) CheckOut(c *gin.Context) {
-	userID, ok := getCurrentUserID(c)
+	userID, ok := utils.GetCurrentUserID(c)
 	if !ok {
 		return
 	}
@@ -49,7 +50,7 @@ func (h *AttendanceHandler) CheckOut(c *gin.Context) {
 }
 
 func (h *AttendanceHandler) GetLogs(c *gin.Context) {
-	userID, ok := getCurrentUserID(c)
+	userID, ok := utils.GetCurrentUserID(c)
 	if !ok {
 		return
 	}
@@ -67,22 +68,4 @@ func (h *AttendanceHandler) GetLogs(c *gin.Context) {
 		map[string]any{"user_id": userID},
 	)
 	c.JSON(http.StatusOK, common.SuccessResponse(response.ToAttendanceListResponse(logs)))
-}
-
-func getCurrentUserID(c *gin.Context) (string, bool) {
-	uid, exists := c.Get("uid")
-	if !exists {
-		c.Error(common.UnauthorizedError("Unauthorized, please login again"))
-		c.Abort()
-		return "", false
-	}
-
-	userID, ok := uid.(string)
-	if !ok || userID == "" {
-		c.Error(common.UnauthorizedError("Unauthorized, please login again"))
-		c.Abort()
-		return "", false
-	}
-
-	return userID, true
 }
