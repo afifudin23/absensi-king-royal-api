@@ -9,11 +9,12 @@ import (
 )
 
 type EnvConfig struct {
-	AppName     string
-	Environment string
-	DatabaseURL string
-	AccessKey   string
-	Port        string
+	AppName       string
+	Environment   string
+	DatabaseURL   string
+	AccessKey     string
+	Port          string
+	ServerBaseURL string
 }
 
 func LoadEnv() (*EnvConfig, error) {
@@ -39,6 +40,11 @@ func LoadEnv() (*EnvConfig, error) {
 		accessKey = "dev-secret-change-me"
 	}
 
+	serverBaseURL := strings.TrimSpace(os.Getenv("SERVER_BASE_URL"))
+	if serverBaseURL == "" {
+		return nil, fmt.Errorf("SERVER_BASE_URL is required")
+	}
+
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
 		port = "8080"
@@ -48,10 +54,11 @@ func LoadEnv() (*EnvConfig, error) {
 	}
 
 	return &EnvConfig{
-		AppName:     appName,
-		Environment: environment,
-		DatabaseURL: databaseURL,
-		AccessKey:   accessKey,
-		Port:        port,
+		AppName:       appName,
+		Environment:   environment,
+		DatabaseURL:   databaseURL,
+		AccessKey:     accessKey,
+		Port:          port,
+		ServerBaseURL: serverBaseURL,
 	}, nil
 }

@@ -12,9 +12,8 @@ type LeaveRequestCreateRequest struct {
 	Reason    string                 `json:"reason" binding:"required"`
 	Type      model.LeaveRequestType `json:"type" binding:"required,oneof=sick extra_off overtime leave"`
 
-	EvidenceURL      *string  `json:"evidence_url"`
-	EvidencePublicID *string  `json:"evidence_public_id"`
-	OvertimeHours    *float64 `json:"overtime_hours"`
+	EvidenceFileID *string  `json:"evidence_file_id"`
+	OvertimeHours  *float64 `json:"overtime_hours"`
 }
 
 func (rq *LeaveRequestCreateRequest) Normalize() {
@@ -23,19 +22,16 @@ func (rq *LeaveRequestCreateRequest) Normalize() {
 }
 
 type LeaveRequestUpdateRequest struct {
-	StartDate *string                 `json:"start_date"`
-	EndDate   *string                 `json:"end_date"`
-	Reason    *string                 `json:"reason"`
-	Type      *model.LeaveRequestType `json:"type" binding:"omitempty,oneof=sick extra_off overtime leave"`
-
-	EvidenceURL      *string  `json:"evidence_url"`
-	EvidencePublicID *string  `json:"evidence_public_id"`
-	OvertimeHours    *float64 `json:"overtime_hours"`
+	StartDate      *string                 `json:"start_date"`
+	EndDate        *string                 `json:"end_date"`
+	Reason         *string                 `json:"reason"`
+	Type           *model.LeaveRequestType `json:"type" binding:"omitempty,oneof=sick extra_off overtime leave"`
+	EvidenceFileID *string                 `json:"evidence_file_id"`
+	OvertimeHours  *float64                `json:"overtime_hours"`
 }
 
 func (rq *LeaveRequestUpdateRequest) Normalize() {
 	normalizeOptionalString(&rq.Reason, false)
-	normalizeOptionalString(&rq.EvidenceURL, false)
 	if rq.Type != nil {
 		normalized := model.LeaveRequestType(strings.ToLower(strings.TrimSpace(string(*rq.Type))))
 		rq.Type = &normalized

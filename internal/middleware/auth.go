@@ -18,56 +18,48 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Check Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.Error(common.UnauthorizedError("Authorization header is required"))
-			c.Abort()
+			common.ErrorHandler(c, common.UnauthorizedError("Authorization header is required"))
 			return
 		}
 
 		// Require Bearer token format.
 		const bearerPrefix = "Bearer "
 		if !strings.HasPrefix(authHeader, bearerPrefix) {
-			c.Error(common.UnauthorizedError("Authorization header must use Bearer token"))
-			c.Abort()
+			common.ErrorHandler(c, common.UnauthorizedError("Authorization header must use Bearer token"))
 			return
 		}
 		token := strings.TrimSpace(strings.TrimPrefix(authHeader, bearerPrefix))
 		if token == "" {
-			c.Error(common.UnauthorizedError("Bearer token is required"))
-			c.Abort()
+			common.ErrorHandler(c, common.UnauthorizedError("Bearer token is required"))
 			return
 		}
 
 		// Verify token
 		env := config.GetEnv()
 		if env == nil {
-			c.Error(common.InternalServerError())
-			c.Abort()
+			common.ErrorHandler(c, common.InternalServerError())
 			return
 		}
 		claims, err := utils.VerifyToken(token, env.AccessKey)
 		if err != nil {
-			c.Error(common.UnauthorizedError("Invalid or expired token"))
-			c.Abort()
+			common.ErrorHandler(c, common.UnauthorizedError("Invalid or expired token"))
 			return
 		}
 
 		// Check user still exists and is not soft-deleted.
 		db := config.GetDB()
 		if db == nil {
-			c.Error(common.InternalServerError())
-			c.Abort()
+			common.ErrorHandler(c, common.InternalServerError())
 			return
 		}
 
 		var user model.User
-		if err := db.Where("id = ? AND deleted_at IS NULL", claims.UID).Take(&user).Error; err != nil {
+		if err := db.Where("id = ?", claims.UID).Take(&user).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				c.Error(common.UnauthorizedError("User not found or has been deleted"))
-				c.Abort()
+				common.ErrorHandler(c, common.UnauthorizedError("User not found or has been deleted"))
 				return
 			}
-			c.Error(common.InternalServerError())
-			c.Abort()
+			common.ErrorHandler(c, common.InternalServerError())
 			return
 		}
 

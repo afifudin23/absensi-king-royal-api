@@ -1,6 +1,9 @@
 package service
 
 import (
+	"context"
+
+	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
@@ -8,109 +11,210 @@ import (
 )
 
 type UserService interface {
-	GetAllUsers() ([]model.User, error)
-	CreateUser(payload model.User) (*model.User, error)
-	GetUserByID(userID string) (*model.User, error)
-	UpdateUser(userID string, payload model.User) (*model.User, error)
-	DeleteUser(userID string) error
+	GetAll(ctx context.Context) ([]model.User, error)
+	Create(ctx context.Context, payload request.UserCreateRequest) (*model.User, error)
+	GetByID(ctx context.Context, userID string) (*model.User, error)
+	Update(ctx context.Context, userID string, payload request.UserUpdateRequest) (*model.User, error)
+	UpdateProfile(ctx context.Context, userID string, payload request.UserUpdateProfileRequest) (*model.User, error)
+	Delete(ctx context.Context, userID string) error
 }
 
 type userService struct {
 	userRepo repository.UserRepository
+	fileRepo repository.FileRepository
 }
 
-func NewUserService() UserService {
-	return &userService{userRepo: repository.NewUserRepository()}
+func NewUserService(userRepo repository.UserRepository, fileRepo repository.FileRepository) UserService {
+	return &userService{userRepo: userRepo, fileRepo: fileRepo}
 }
 
-func (s *userService) GetAllUsers() ([]model.User, error) {
-	users, err := s.userRepo.GetAll()
+func (s *userService) GetAll(ctx context.Context) ([]model.User, error) {
+	users, err := s.userRepo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return users, nil
 }
 
-func (s *userService) CreateUser(payload model.User) (*model.User, error) {
-	if payload.Password != "" {
-		hashedPassword, err := utils.HashPassword(payload.Password)
+func (s *userService) Create(ctx context.Context, payload request.UserCreateRequest) (*model.User, error) {
+	hashedPassword, err := utils.HashPassword(payload.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	var profilePictureURL *string
+	if payload.ProfilePictureID != nil {
+		if s.fileRepo == nil {
+			return nil, common.InternalServerError()
+		}
+
+		file, err := s.fileRepo.GetByID(ctx, *payload.ProfilePictureID)
+		if err != nil {
+			if isNotFoundError(err) {
+				return nil, common.BadRequestError("Invalid profile_picture_id")
+			}
+			return nil, err
+		}
+		if file.Type != model.FileTypeProfilePicture {
+			return nil, common.BadRequestError("Invalid file type for profile picture")
+		}
+		url := file.FileURL
+		profilePictureURL = &url
+	}
+
+	user := &model.User{
+		FullName: payload.FullName,
+		Email:    payload.Email,
+		Password: hashedPassword,
+		Role:     payload.Role,
+
+		EmployeeCode:      payload.EmployeeCode,
+		EmploymentStatus:  payload.EmploymentStatus,
+		BirthPlace:        payload.BirthPlace,
+		BirthDate:         payload.BirthDate,
+		Gender:            payload.Gender,
+		Address:           payload.Address,
+		PhoneNumber:       payload.PhoneNumber,
+		Position:          payload.Position,
+		Department:        payload.Department,
+		BankAccountNumber: payload.BankAccountNumber,
+		BasicSalary:       payload.BasicSalary,
+		ProfilePictureURL: profilePictureURL,
+		ProfilePictureID:  payload.ProfilePictureID,
+	}
+	if err := s.userRepo.Create(ctx, user); err != nil {
+		if isDuplicateError(err) {
+			return nil, ErrEmailAlreadyRegistered
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *userService) GetByID(ctx context.Context, userID string) (*model.User, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *userService) Update(ctx context.Context, userID string, payload request.UserUpdateRequest) (*model.User, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	applyUserUpdateRequest(user, payload)
+
+	if payload.ProfilePictureID != nil {
+		if s.fileRepo == nil {
+			return nil, common.InternalServerError()
+		}
+
+		file, err := s.fileRepo.GetByID(ctx, *payload.ProfilePictureID)
+		if err != nil {
+			if isNotFoundError(err) {
+				return nil, common.BadRequestError("Invalid profile_picture_id")
+			}
+			return nil, err
+		}
+		if file.Type != model.FileTypeProfilePicture {
+			return nil, common.BadRequestError("Invalid file type for profile picture")
+		}
+		if file.UploadedBy != userID {
+			return nil, common.ForbiddenError("File does not belong to current user")
+		}
+
+		url := file.FileURL
+		user.ProfilePictureID = payload.ProfilePictureID
+		user.ProfilePictureURL = &url
+	}
+
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		if isDuplicateError(err) {
+			return nil, ErrEmailAlreadyRegistered
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *userService) UpdateProfile(ctx context.Context, userID string, payload request.UserUpdateProfileRequest) (*model.User, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	if payload.Password != nil && *payload.Password != "" {
+		hashedPassword, err := utils.HashPassword(*payload.Password)
 		if err != nil {
 			return nil, err
 		}
-		payload.Password = hashedPassword
+		user.Password = hashedPassword
 	}
 
-	user := &payload
-	if err := s.userRepo.Create(user); err != nil {
-		if isDuplicateError(err) {
-			return nil, common.BadRequestError("Email is already registered")
+	applyUserUpdateProfileRequest(user, payload)
+
+	if payload.ProfilePictureID != nil {
+		if s.fileRepo == nil {
+			return nil, common.InternalServerError()
 		}
-		return nil, err
-	}
-	return user, nil
-}
 
-func (s *userService) GetUserByID(userID string) (*model.User, error) {
-	user, err := s.userRepo.GetByID(userID)
-	if err != nil {
-		if isNotFoundError(err) {
-			return nil, common.BadRequestError("User not found")
-		}
-		return nil, err
-	}
-	return user, nil
-}
-
-func (s *userService) UpdateUser(userID string, payload model.User) (*model.User, error) {
-	user, err := s.userRepo.GetByID(userID)
-	if err != nil {
-		if isNotFoundError(err) {
-			return nil, common.BadRequestError("User not found")
-		}
-		return nil, err
-	}
-
-	if payload.Password != "" {
-		hashedPassword, err := utils.HashPassword(payload.Password)
+		file, err := s.fileRepo.GetByID(ctx, *payload.ProfilePictureID)
 		if err != nil {
+			if isNotFoundError(err) {
+				return nil, common.BadRequestError("Invalid profile_picture_id")
+			}
 			return nil, err
 		}
-		payload.Password = hashedPassword
+		if file.Type != model.FileTypeProfilePicture {
+			return nil, common.BadRequestError("Invalid file type for profile picture")
+		}
+		if file.UploadedBy != userID {
+			return nil, common.ForbiddenError("File does not belong to current user")
+		}
+
+		url := file.FileURL
+		user.ProfilePictureID = payload.ProfilePictureID
+		user.ProfilePictureURL = &url
 	}
 
-	applyUserUpdates(user, payload)
-	if err := s.userRepo.Update(user); err != nil {
+	if err := s.userRepo.Update(ctx, user); err != nil {
 		if isDuplicateError(err) {
-			return nil, common.BadRequestError("Email is already registered")
+			return nil, ErrEmailAlreadyRegistered
 		}
 		return nil, err
 	}
 	return user, nil
 }
 
-func (s *userService) DeleteUser(userID string) error {
-	_, err := s.userRepo.GetByID(userID)
+func (s *userService) Delete(ctx context.Context, userID string) error {
+	_, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		if isNotFoundError(err) {
-			return common.BadRequestError("User not found")
+			return ErrUserNotFound
 		}
 		return err
 	}
-	return s.userRepo.Delete(userID)
+	return s.userRepo.Delete(ctx, userID)
 }
 
-func applyUserUpdates(existing *model.User, payload model.User) {
-	if payload.FullName != "" {
-		existing.FullName = payload.FullName
+func applyUserUpdateRequest(existing *model.User, payload request.UserUpdateRequest) {
+	if payload.FullName != nil {
+		existing.FullName = *payload.FullName
 	}
-	if payload.Email != "" {
-		existing.Email = payload.Email
-	}
-	if payload.Password != "" {
-		existing.Password = payload.Password
-	}
-	if payload.Role != "" {
-		existing.Role = payload.Role
+	if payload.Role != nil {
+		existing.Role = model.UserRole(*payload.Role)
 	}
 
 	if payload.EmployeeCode != nil {
@@ -126,7 +230,7 @@ func applyUserUpdates(existing *model.User, payload model.User) {
 		existing.BirthDate = payload.BirthDate
 	}
 	if payload.Gender != nil {
-		existing.Gender = payload.Gender	
+		existing.Gender = payload.Gender
 	}
 	if payload.Address != nil {
 		existing.Address = payload.Address
@@ -143,10 +247,50 @@ func applyUserUpdates(existing *model.User, payload model.User) {
 	if payload.BankAccountNumber != nil {
 		existing.BankAccountNumber = payload.BankAccountNumber
 	}
-	if payload.ProfilePictureURL != nil {
-		existing.ProfilePictureURL = payload.ProfilePictureURL
+	if payload.BasicSalary != nil {
+		existing.BasicSalary = payload.BasicSalary
 	}
-	if payload.ProfilePictureID != nil {
-		existing.ProfilePictureID = payload.ProfilePictureID
+}
+
+func applyUserUpdateProfileRequest(existing *model.User, payload request.UserUpdateProfileRequest) {
+	if payload.FullName != nil {
+		existing.FullName = *payload.FullName
+	}
+	if payload.Email != nil {
+		existing.Email = *payload.Email
+	}
+	if payload.Role != nil {
+		existing.Role = *payload.Role
+	}
+
+	if payload.EmployeeCode != nil {
+		existing.EmployeeCode = payload.EmployeeCode
+	}
+	if payload.EmploymentStatus != nil {
+		existing.EmploymentStatus = payload.EmploymentStatus
+	}
+	if payload.BirthPlace != nil {
+		existing.BirthPlace = payload.BirthPlace
+	}
+	if payload.BirthDate != nil {
+		existing.BirthDate = payload.BirthDate
+	}
+	if payload.Gender != nil {
+		existing.Gender = payload.Gender
+	}
+	if payload.Address != nil {
+		existing.Address = payload.Address
+	}
+	if payload.PhoneNumber != nil {
+		existing.PhoneNumber = payload.PhoneNumber
+	}
+	if payload.Position != nil {
+		existing.Position = payload.Position
+	}
+	if payload.Department != nil {
+		existing.Department = payload.Department
+	}
+	if payload.BankAccountNumber != nil {
+		existing.BankAccountNumber = payload.BankAccountNumber
 	}
 }

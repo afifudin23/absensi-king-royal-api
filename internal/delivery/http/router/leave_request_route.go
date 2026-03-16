@@ -1,15 +1,22 @@
 package router
 
 import (
+	"github.com/afifudin23/absensi-king-royal-api/internal/config"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/handler"
 	"github.com/afifudin23/absensi-king-royal-api/internal/middleware"
+	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
+	"github.com/afifudin23/absensi-king-royal-api/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 func registerLeaveRequestRoutes(rg *gin.RouterGroup) {
-	leaveRequestHandler := handler.NewLeaveRequestHandler()
+	db := config.GetDB()
+	leaveRepo := repository.NewLeaveRequestRepository(db)
+	fileRepo := repository.NewFileRepository(db)
+	leaveService := service.NewLeaveRequestService(leaveRepo, fileRepo)
+	leaveRequestHandler := handler.NewLeaveRequestHandler(leaveService)
 	leaveRequest := rg.Group("/leave-requests")
-
+	
 	leaveRequest.Use(middleware.AuthMiddleware())
 	{
 		leaveRequest.GET("", leaveRequestHandler.GetAll)

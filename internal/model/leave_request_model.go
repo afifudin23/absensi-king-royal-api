@@ -28,9 +28,9 @@ type LeaveRequest struct {
 	Status    LeaveRequestStatus `gorm:"column:status;type:enum('pending', 'approved', 'rejected');not null;default:pending"`
 
 	// Optional fields
-	EvidenceURL      *string  `gorm:"type:varchar(255)" json:"evidence_url"`
-	EvidencePublicID *string  `gorm:"type:varchar(255)" json:"evidence_public_id"`
-	OvertimeHours    *float64 `gorm:"type:decimal(5,2)" json:"overtime_hours"`
+	EvidenceFileID  *string  `gorm:"column:evidence_file_id;type:char(36);null"`
+	EvidenceFileURL *string  `gorm:"column:evidence_file_url;type:text;null"`
+	OvertimeHours   *float64 `gorm:"column:overtime_hours;type:decimal(5,2);null"`
 
 	CreatedAt time.Time `gorm:"column:created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at"`

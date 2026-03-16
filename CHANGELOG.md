@@ -4,6 +4,51 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.0] - 2026-03-16
+
+### Added
+
+- Files module:
+  - `POST /api/v1/files`
+  - `DELETE /api/v1/files/:file_id`
+  - Model: `internal/model/file_model.go`
+  - Repository: `internal/repository/file_repository.go`
+  - Service: `internal/service/file_service.go`
+  - Handler: `internal/delivery/http/handler/file_handler.go`
+  - Router registration: `internal/delivery/http/router/file_route.go`
+  - Migrations:
+    - `migrations/20260301151022_create_files_table.up.sql`
+    - `migrations/20260301151022_create_files_table.down.sql`
+    - `migrations/20260301153134_create_fk_users_files.up.sql`
+    - `migrations/20260301153134_create_fk_users_files.down.sql`
+- Unit tests:
+  - `internal/service/user_service_test.go`
+
+### Changed
+
+- File references now use ID-only payloads:
+  - Attendance check-in/out request now only sends `file_id`; URL is fetched from `files`.
+  - Leave request evidence now only sends `evidence_file_id`; URL is fetched from `files`.
+  - User profile picture now only sends `profile_picture_id`; URL is fetched from `files`.
+- File validations added across modules (exists, ownership, expected file type) to avoid FK 1452 and return proper 4xx errors.
+- Attendance DB columns standardized to `check_in_*` / `check_out_*` naming.
+- Evidence storage path now groups leave evidence under `files/evidence/<date>/...` while keeping `files.type` unchanged.
+- Dependency injection standardized: repositories no longer instantiate DB internally; routers wire DB, repos, services, handlers.
+- Context propagation added across handler → service → repository; GORM queries now use `db.WithContext(ctx)`.
+
+### Fixed
+
+- Attendance date-only storage no longer shifts day due to time zone conversions.
+- Error message casing standardized (capitalize) for HTTP responses.
+
+### Migration Required
+
+- Yes.
+- Run:
+  - `make migrate-up`
+
+---
+
 ## [0.4.0] - 2026-03-13
 
 ### Added

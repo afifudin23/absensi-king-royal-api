@@ -1,50 +1,51 @@
 package repository
 
 import (
-	"github.com/afifudin23/absensi-king-royal-api/internal/config"
+	"context"
+
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"gorm.io/gorm"
 )
 
 type LeaveRequestRepository interface {
-	Create(leaveRequest *model.LeaveRequest) error
-	GetAll() ([]model.LeaveRequest, error)
-	GetByID(id string) (*model.LeaveRequest, error)
-	GetByUserID(userID string) ([]model.LeaveRequest, error)
-	Update(leaveRequest *model.LeaveRequest) error
-	Delete(id string) error
+	Create(ctx context.Context, leaveRequest *model.LeaveRequest) error
+	GetAll(ctx context.Context) ([]model.LeaveRequest, error)
+	GetByID(ctx context.Context, id string) (*model.LeaveRequest, error)
+	GetByUserID(ctx context.Context, userID string) ([]model.LeaveRequest, error)
+	Update(ctx context.Context, leaveRequest *model.LeaveRequest) error
+	Delete(ctx context.Context, id string) error
 }
 
 type leaveRequestRepository struct {
 	db *gorm.DB
 }
 
-func NewLeaveRequestRepository() LeaveRequestRepository {
-	return &leaveRequestRepository{db: config.GetDB()}
+func NewLeaveRequestRepository(db *gorm.DB) LeaveRequestRepository {
+	return &leaveRequestRepository{db: db}
 }
 
-func (r *leaveRequestRepository) Create(leaveRequest *model.LeaveRequest) error {
-	return r.db.Create(&leaveRequest).Error
+func (r *leaveRequestRepository) Create(ctx context.Context, leaveRequest *model.LeaveRequest) error {
+	return r.db.WithContext(ctx).Create(leaveRequest).Error
 }
 
-func (r *leaveRequestRepository) GetAll() ([]model.LeaveRequest, error) {
+func (r *leaveRequestRepository) GetAll(ctx context.Context) ([]model.LeaveRequest, error) {
 	var leaveRequests []model.LeaveRequest
-	err := r.db.Order("created_at desc").Find(&leaveRequests).Error
+	err := r.db.WithContext(ctx).Order("created_at desc").Find(&leaveRequests).Error
 	return leaveRequests, err
 }
 
-func (r *leaveRequestRepository) GetByID(id string) (*model.LeaveRequest, error) {
+func (r *leaveRequestRepository) GetByID(ctx context.Context, id string) (*model.LeaveRequest, error) {
 	var leaveRequest model.LeaveRequest
-	err := r.db.Where("id = ?", id).First(&leaveRequest).Error
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&leaveRequest).Error
 	if err != nil {
 		return nil, err
 	}
 	return &leaveRequest, nil
 }
 
-func (r *leaveRequestRepository) GetByUserID(userID string) ([]model.LeaveRequest, error) {
+func (r *leaveRequestRepository) GetByUserID(ctx context.Context, userID string) ([]model.LeaveRequest, error) {
 	var leaveRequests []model.LeaveRequest
-	result := r.db.Where("user_id = ?", userID).Order("created_at desc").Find(&leaveRequests)
+	result := r.db.WithContext(ctx).Where("user_id = ?", userID).Order("created_at desc").Find(&leaveRequests)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -54,8 +55,8 @@ func (r *leaveRequestRepository) GetByUserID(userID string) ([]model.LeaveReques
 	return leaveRequests, nil
 }
 
-func (r *leaveRequestRepository) Update(leaveRequest *model.LeaveRequest) error {
-	result := r.db.Model(&model.LeaveRequest{}).
+func (r *leaveRequestRepository) Update(ctx context.Context, leaveRequest *model.LeaveRequest) error {
+	result := r.db.WithContext(ctx).Model(&model.LeaveRequest{}).
 		Where("id = ?", leaveRequest.ID).
 		Updates(leaveRequest)
 	if result.Error != nil {
@@ -68,8 +69,8 @@ func (r *leaveRequestRepository) Update(leaveRequest *model.LeaveRequest) error 
 	return nil
 }
 
-func (r *leaveRequestRepository) Delete(id string) error {
-	result := r.db.Delete(&model.LeaveRequest{}, "id = ?", id)
+func (r *leaveRequestRepository) Delete(ctx context.Context, id string) error {
+	result := r.db.WithContext(ctx).Delete(&model.LeaveRequest{}, "id = ?", id)
 	if result.Error != nil {
 		return result.Error
 	}

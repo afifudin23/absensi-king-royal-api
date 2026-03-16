@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response"
@@ -16,8 +15,8 @@ type AuthHandler struct {
 	Service service.AuthService
 }
 
-func NewAuthHandler() *AuthHandler {
-	return &AuthHandler{Service: service.NewAuthService()}
+func NewAuthHandler(authService service.AuthService) *AuthHandler {
+	return &AuthHandler{Service: authService}
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -29,7 +28,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 	payload.Normalize()
 
-	user, err := h.Service.Register(payload)
+	user, err := h.Service.Register(c.Request.Context(), payload)
 	if err != nil {
 		if errors.Is(err, service.ErrEmailAlreadyRegistered) {
 			common.ErrorHandler(c, common.BadRequestError(err.Error()))
@@ -51,42 +50,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 	payload.Normalize()
 
-	user, token, err := h.Service.Login(payload)
+	user, token, err := h.Service.Login(c.Request.Context(), payload)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
-			common.ErrorHandler(c, common.NewAppError(
-				http.StatusUnauthorized,
-				common.AUTH_INVALID_CREDENTIALS,
-				err.Error(),
-				nil,
-			))
-			return
-		}
-		var deletedErr *service.DeletedAccountError
-		if errors.As(err, &deletedErr) {
-			common.ErrorHandler(c, common.NewAppError(
-				http.StatusForbidden,
-				common.FORBIDDEN,
-				err.Error(),
-				map[string]string{
-					"email":      deletedErr.Email,
-					"deleted_at": deletedErr.DeletedAt.Format(time.RFC3339),
-				},
-			))
+			common.ErrorHandler(c, common.UnauthorizedError(err.Error()))
 			return
 		}
 		common.ErrorHandler(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, common.SuccessResponse(response.ToLoginResponse(response.UserData{
-		ID:        user.ID,
-		FullName:  user.FullName,
-		Email:     user.Email,
-		Role:      user.Role,
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
-	}, token)))
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToLoginResponse(*user, token)))
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {

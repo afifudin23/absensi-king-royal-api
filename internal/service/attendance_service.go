@@ -1,9 +1,11 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"time"
 
+	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
@@ -11,57 +13,97 @@ import (
 )
 
 type AttendanceService interface {
-	CheckIn(userID string) (*model.Attendance, error)
-	CheckOut(userID string) (*model.Attendance, error)
-	GetLogs(userID string) ([]model.Attendance, error)
+	CheckIn(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error)
+	CheckOut(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error)
+	GetLogs(ctx context.Context, userID string) ([]model.Attendance, error)
 }
 
 type attendanceService struct {
 	attendanceRepo repository.AttendanceRepository
+	fileRepo       repository.FileRepository
 }
 
-func NewAttendanceService() AttendanceService {
-	return &attendanceService{attendanceRepo: repository.NewAttendanceRepository()}
+func NewAttendanceService(attendanceRepo repository.AttendanceRepository, fileRepo repository.FileRepository) AttendanceService {
+	return &attendanceService{attendanceRepo: attendanceRepo, fileRepo: fileRepo}
 }
 
-func (s *attendanceService) CheckIn(userID string) (*model.Attendance, error) {
+func (s *attendanceService) CheckIn(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error) {
 	now := time.Now()
 	today := startOfDay(now)
 
-	attendance, err := s.attendanceRepo.GetByUserAndDate(userID, today)
+	// Validate file_id up-front to avoid foreign key 1452 (and return a proper 4xx).
+	file, err := s.fileRepo.GetByID(ctx, payload.FileID)
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil, common.BadRequestError("File not found")
+		}
+		return nil, err
+	}
+	if file.Type != model.FileTypeCheckIn {
+		return nil, common.BadRequestError("Invalid file type for check-in")
+	}
+	if file.UploadedBy != userID {
+		return nil, common.ForbiddenError("File does not belong to current user")
+	}
+	fileURL := file.FileURL
+
+	attendance, err := s.attendanceRepo.GetByUserAndDate(ctx, userID, today)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 
 		attendance = &model.Attendance{
-			UserID:    userID,
-			Date:      today,
-			CheckInAt: &now,
+			UserID:         userID,
+			Date:           today,
+			CheckInAt:      &now,
+			CheckInFileID:  &payload.FileID,
+			CheckInFileURL: &fileURL,
 		}
-		if err := s.attendanceRepo.Create(attendance); err != nil {
-			return nil, err
+		if err := s.attendanceRepo.Create(ctx, attendance); err != nil {
+			// Race protection: if a duplicate row is inserted concurrently, re-fetch it.
+			if isDuplicateError(err) {
+				attendance, err = s.attendanceRepo.GetByUserAndDate(ctx, userID, today)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, err
+			}
 		}
-		return attendance, nil
-	}
-
-	if attendance.CheckInAt != nil {
-		return nil, common.BadRequestError("You have already checked in today")
 	}
 
 	attendance.CheckInAt = &now
-	if err := s.attendanceRepo.Update(attendance); err != nil {
+	attendance.CheckInFileID = &payload.FileID
+	attendance.CheckInFileURL = &fileURL
+	if err := s.attendanceRepo.Update(ctx, attendance); err != nil {
 		return nil, err
 	}
 
 	return attendance, nil
 }
 
-func (s *attendanceService) CheckOut(userID string) (*model.Attendance, error) {
+func (s *attendanceService) CheckOut(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error) {
 	now := time.Now()
 	today := startOfDay(now)
 
-	attendance, err := s.attendanceRepo.GetByUserAndDate(userID, today)
+	// Validate file_id up-front to avoid foreign key 1452 (and return a proper 4xx).
+	file, err := s.fileRepo.GetByID(ctx, payload.FileID)
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil, common.BadRequestError("Invalid file_id")
+		}
+		return nil, err
+	}
+	if file.Type != model.FileTypeCheckOut {
+		return nil, common.BadRequestError("Invalid file type for check-out")
+	}
+	if file.UploadedBy != userID {
+		return nil, common.ForbiddenError("File does not belong to current user")
+	}
+	fileURL := file.FileURL
+
+	attendance, err := s.attendanceRepo.GetByUserAndDate(ctx, userID, today)
 	if err != nil {
 		if isNotFoundError(err) {
 			return nil, common.BadRequestError("You must check in before checking out")
@@ -78,18 +120,23 @@ func (s *attendanceService) CheckOut(userID string) (*model.Attendance, error) {
 	}
 
 	attendance.CheckOutAt = &now
-	if err := s.attendanceRepo.Update(attendance); err != nil {
+	attendance.CheckOutFileID = &payload.FileID
+	attendance.CheckOutFileURL = &fileURL
+	if err := s.attendanceRepo.Update(ctx, attendance); err != nil {
 		return nil, err
 	}
 
 	return attendance, nil
 }
 
-func (s *attendanceService) GetLogs(userID string) ([]model.Attendance, error) {
-	return s.attendanceRepo.GetLogsByUserID(userID)
+func (s *attendanceService) GetLogs(ctx context.Context, userID string) ([]model.Attendance, error) {
+	return s.attendanceRepo.GetLogsByUserID(ctx, userID)
 }
 
 func startOfDay(t time.Time) time.Time {
-	local := t.In(time.Local)
-	return time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, local.Location())
+	loc, _ := time.LoadLocation("Asia/Jakarta") // WIB
+	local := t.In(loc)
+	// Store date-only values in UTC so the SQL driver doesn't shift the day when converting time zones.
+	y, m, d := local.Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }

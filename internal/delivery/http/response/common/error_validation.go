@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -85,28 +86,28 @@ func ErrorValidation(err error) map[string]string {
 }
 
 func normalizeFieldName(field string) string {
-	if field == "" {
-		return ""
-	}
-
+	// jika ada dot (struct nested), ambil field terakhir
 	parts := strings.Split(field, ".")
 	field = parts[len(parts)-1]
-	field = strings.TrimSpace(field)
-	if field == "" {
-		return ""
+
+	// ambil tag json dari struct
+	// default fallback ke snake_case hanya jika json tag tidak ada
+	t := reflect.TypeOf(request.AttendanceRequest{}) // contoh untuk struct tertentu
+	if f, ok := t.FieldByName(field); ok {
+		tag := f.Tag.Get("json")
+		if tag != "" {
+			tag = strings.Split(tag, ",")[0] // ambil sebelum koma
+			return tag
+		}
 	}
 
+	// fallback: convert CamelCase → snake_case
 	var builder strings.Builder
 	for i, r := range field {
-		if unicode.IsUpper(r) {
-			if i > 0 {
-				builder.WriteByte('_')
-			}
-			builder.WriteRune(unicode.ToLower(r))
-			continue
+		if unicode.IsUpper(r) && i > 0 {
+			builder.WriteByte('_')
 		}
 		builder.WriteRune(unicode.ToLower(r))
 	}
-
 	return builder.String()
 }

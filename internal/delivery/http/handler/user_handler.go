@@ -6,7 +6,6 @@ import (
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
-	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/service"
 	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -16,12 +15,12 @@ type UserHandler struct {
 	Service service.UserService
 }
 
-func NewUserHandler() *UserHandler {
-	return &UserHandler{Service: service.NewUserService()}
+func NewUserHandler(userService service.UserService) *UserHandler {
+	return &UserHandler{Service: userService}
 }
 
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
-	users, err := h.Service.GetAllUsers()
+	users, err := h.Service.GetAll(c.Request.Context())
 	if err != nil {
 		common.ErrorHandler(c, common.InternalServerError())
 		return
@@ -34,7 +33,7 @@ func (h *UserHandler) GetMyProfile(c *gin.Context) {
 	if !ok {
 		return
 	}
-	user, err := h.Service.GetUserByID(userID)
+	user, err := h.Service.GetByID(c.Request.Context(), userID)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
@@ -57,24 +56,7 @@ func (h *UserHandler) UpdateMyProfile(c *gin.Context) {
 	}
 	payload.Normalize()
 
-	user, err := h.Service.UpdateUser(uid.(string), model.User{
-		FullName:          stringValue(payload.FullName),
-		Email:             stringValue(payload.Email),
-		Password:          stringValue(payload.Password),
-		Role:              stringValue(payload.Role),
-		EmployeeCode:      payload.EmployeeCode,
-		EmploymentStatus:  payload.EmploymentStatus,
-		BirthPlace:        payload.BirthPlace,
-		BirthDate:         payload.BirthDate,
-		Gender:            payload.Gender,
-		Address:           payload.Address,
-		PhoneNumber:       payload.PhoneNumber,
-		Position:          payload.Position,
-		Department:        payload.Department,
-		BankAccountNumber: payload.BankAccountNumber,
-		ProfilePictureURL: payload.ProfilePictureURL,
-		ProfilePictureID:  payload.ProfilePictureID,
-	})
+	user, err := h.Service.UpdateProfile(c.Request.Context(), uid.(string), payload)
 
 	if err != nil {
 		common.ErrorHandler(c, err)
@@ -93,25 +75,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 	payload.Normalize()
 
-	user, err := h.Service.CreateUser(model.User{
-		FullName: payload.FullName,
-		Email:    payload.Email,
-		Password: payload.Password,
-		Role:     payload.Role,
-
-		EmployeeCode:      payload.EmployeeCode,
-		EmploymentStatus:  payload.EmploymentStatus,
-		BirthPlace:        payload.BirthPlace,
-		BirthDate:         payload.BirthDate,
-		Gender:            payload.Gender,
-		Address:           payload.Address,
-		PhoneNumber:       payload.PhoneNumber,
-		Position:          payload.Position,
-		Department:        payload.Department,
-		BankAccountNumber: payload.BankAccountNumber,
-		ProfilePictureURL: payload.ProfilePictureURL,
-		ProfilePictureID:  payload.ProfilePictureID,
-	})
+	user, err := h.Service.Create(c.Request.Context(), payload)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
@@ -121,7 +85,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	userID := c.Param("user_id")
-	user, err := h.Service.GetUserByID(userID)
+	user, err := h.Service.GetByID(c.Request.Context(), userID)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
@@ -139,22 +103,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 	payload.Normalize()
 
-	user, err := h.Service.UpdateUser(userID, model.User{
-		FullName:          stringValue(payload.FullName),
-		Role:              stringValue(payload.Role),
-		EmployeeCode:      payload.EmployeeCode,
-		EmploymentStatus:  payload.EmploymentStatus,
-		BirthPlace:        payload.BirthPlace,
-		BirthDate:         payload.BirthDate,
-		Gender:            payload.Gender,
-		Address:           payload.Address,
-		PhoneNumber:       payload.PhoneNumber,
-		Position:          payload.Position,
-		Department:        payload.Department,
-		BankAccountNumber: payload.BankAccountNumber,
-		ProfilePictureURL: payload.ProfilePictureURL,
-		ProfilePictureID:  payload.ProfilePictureID,
-	})
+	user, err := h.Service.Update(c.Request.Context(), userID, payload)
 
 	if err != nil {
 		common.ErrorHandler(c, err)
@@ -166,17 +115,10 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	userID := c.Param("user_id")
-	err := h.Service.DeleteUser(userID)
+	err := h.Service.Delete(c.Request.Context(), userID)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, common.SuccessResponse(common.ToSuccessResponse(userID)))
-}
-
-func stringValue(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return *value
 }

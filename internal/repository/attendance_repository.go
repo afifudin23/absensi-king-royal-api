@@ -1,31 +1,31 @@
 package repository
 
 import (
+	"context"
 	"time"
 
-	"github.com/afifudin23/absensi-king-royal-api/internal/config"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"gorm.io/gorm"
 )
 
 type AttendanceRepository interface {
-	GetByUserAndDate(userID string, date time.Time) (*model.Attendance, error)
-	Create(attendance *model.Attendance) error
-	Update(attendance *model.Attendance) error
-	GetLogsByUserID(userID string) ([]model.Attendance, error)
+	GetByUserAndDate(ctx context.Context, userID string, date time.Time) (*model.Attendance, error)
+	Create(ctx context.Context, attendance *model.Attendance) error
+	Update(ctx context.Context, attendance *model.Attendance) error
+	GetLogsByUserID(ctx context.Context, userID string) ([]model.Attendance, error)
 }
 
 type attendanceRepository struct {
 	db *gorm.DB
 }
 
-func NewAttendanceRepository() AttendanceRepository {
-	return &attendanceRepository{db: config.GetDB()}
+func NewAttendanceRepository(db *gorm.DB) AttendanceRepository {
+	return &attendanceRepository{db: db}
 }
 
-func (r *attendanceRepository) GetByUserAndDate(userID string, date time.Time) (*model.Attendance, error) {
+func (r *attendanceRepository) GetByUserAndDate(ctx context.Context, userID string, date time.Time) (*model.Attendance, error) {
 	var attendance model.Attendance
-	err := r.db.
+	err := r.db.WithContext(ctx).
 		Where("user_id = ? AND date = ?", userID, date.Format("2006-01-02")).
 		Take(&attendance).Error
 	if err != nil {
@@ -34,17 +34,17 @@ func (r *attendanceRepository) GetByUserAndDate(userID string, date time.Time) (
 	return &attendance, nil
 }
 
-func (r *attendanceRepository) Create(attendance *model.Attendance) error {
-	return r.db.Create(attendance).Error
+func (r *attendanceRepository) Create(ctx context.Context, attendance *model.Attendance) error {
+	return r.db.WithContext(ctx).Create(attendance).Error
 }
 
-func (r *attendanceRepository) Update(attendance *model.Attendance) error {
-	return r.db.Save(attendance).Error
+func (r *attendanceRepository) Update(ctx context.Context, attendance *model.Attendance) error {
+	return r.db.WithContext(ctx).Save(attendance).Error
 }
 
-func (r *attendanceRepository) GetLogsByUserID(userID string) ([]model.Attendance, error) {
+func (r *attendanceRepository) GetLogsByUserID(ctx context.Context, userID string) ([]model.Attendance, error) {
 	var logs []model.Attendance
-	err := r.db.
+	err := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Order("date DESC, created_at DESC").
 		Find(&logs).Error

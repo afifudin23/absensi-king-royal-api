@@ -1,13 +1,20 @@
 package router
 
 import (
+	"github.com/afifudin23/absensi-king-royal-api/internal/config"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/handler"
 	"github.com/afifudin23/absensi-king-royal-api/internal/middleware"
+	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
+	"github.com/afifudin23/absensi-king-royal-api/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 func registerUserRouter(rg *gin.RouterGroup) {
-	userHandler := handler.NewUserHandler()
+	db := config.GetDB()
+	userRepo := repository.NewUserRepository(db)
+	fileRepo := repository.NewFileRepository(db)
+	userService := service.NewUserService(userRepo, fileRepo)
+	userHandler := handler.NewUserHandler(userService)
 	users := rg.Group("/users")
 
 	users.Use(middleware.AuthMiddleware())

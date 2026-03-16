@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -12,22 +13,20 @@ import (
 )
 
 type AuthService interface {
-	Register(payload request.AuthRegisterRequest) (*model.User, error)
-	Login(payload request.AuthLoginRequest) (*model.User, string, error)
+	Register(ctx context.Context, payload request.AuthRegisterRequest) (*model.User, error)
+	Login(ctx context.Context, payload request.AuthLoginRequest) (*model.User, string, error)
 }
 
 type authService struct {
 	userRepo repository.UserRepository
 }
 
-func NewAuthService() AuthService {
-	return &authService{
-		userRepo: repository.NewUserRepository(),
-	}
+func NewAuthService(userRepo repository.UserRepository) AuthService {
+	return &authService{userRepo: userRepo}
 }
 
-func (s *authService) Register(payload request.AuthRegisterRequest) (*model.User, error) {
-	if _, err := s.userRepo.GetByEmail(payload.Email); err == nil {
+func (s *authService) Register(ctx context.Context, payload request.AuthRegisterRequest) (*model.User, error) {
+	if _, err := s.userRepo.GetByEmail(ctx, payload.Email); err == nil {
 		return nil, ErrEmailAlreadyRegistered
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -45,7 +44,7 @@ func (s *authService) Register(payload request.AuthRegisterRequest) (*model.User
 		Role:     "user",
 	}
 
-	if err := s.userRepo.Create(user); err != nil {
+	if err := s.userRepo.Create(ctx, user); err != nil {
 		if isDuplicateError(err) {
 			return nil, ErrEmailAlreadyRegistered
 		}
@@ -55,17 +54,13 @@ func (s *authService) Register(payload request.AuthRegisterRequest) (*model.User
 	return user, nil
 }
 
-func (s *authService) Login(payload request.AuthLoginRequest) (*model.User, string, error) {
-	user, err := s.userRepo.GetByEmail(payload.Email)
+func (s *authService) Login(ctx context.Context, payload request.AuthLoginRequest) (*model.User, string, error) {
+	user, err := s.userRepo.GetByEmail(ctx, payload.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, "", ErrInvalidCredentials
 		}
 		return nil, "", err
-	}
-
-	if user.DeletedAt != nil {
-		return nil, "", NewDeletedAccountError(*user.DeletedAt, user.Email)
 	}
 
 	if !utils.CheckPassword(payload.Password, user.Password) {

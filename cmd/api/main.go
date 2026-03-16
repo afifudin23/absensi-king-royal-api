@@ -25,6 +25,7 @@ func main() {
 	logger.Configure(env.AppName, env.Environment)
 
 	r := router.New()
+	r.Static("/files", "./files")
 
 	log.Printf("starting %s on %s", env.AppName, env.Port)
 	if err := r.Run(env.Port); err != nil {

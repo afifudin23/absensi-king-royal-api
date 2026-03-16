@@ -1,12 +1,18 @@
 package response
 
+import (
+	"time"
+
+	"github.com/afifudin23/absensi-king-royal-api/internal/model"
+)
+
 type UserData struct {
-	ID        string `json:"id"`
-	FullName  string `json:"full_name"`
-	Email     string `json:"email"`
-	Role      string `json:"role"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	ID        string         `json:"id"`
+	FullName  string         `json:"full_name"`
+	Email     string         `json:"email"`
+	Role      model.UserRole `json:"role"`
+	CreatedAt string         `json:"created_at"`
+	UpdatedAt string         `json:"updated_at"`
 }
 
 type LoginResponse struct {
@@ -19,11 +25,22 @@ type RegisterResponse struct {
 	ID string `json:"id"`
 }
 
-func ToLoginResponse(user UserData, accessToken string) LoginResponse {
+func ToUserData(user model.User) UserData {
+	return UserData{
+		ID:        user.ID,
+		FullName:  user.FullName,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+	}
+}
+
+func ToLoginResponse(user model.User, accessToken string) LoginResponse {
 	return LoginResponse{
 		AccessToken: accessToken,
 		TokenType:   "Bearer",
-		User:        user,
+		User:        ToUserData(user),
 	}
 }
 
