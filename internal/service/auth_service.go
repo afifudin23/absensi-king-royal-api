@@ -9,6 +9,7 @@ import (
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
 	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -38,13 +39,15 @@ func (s *authService) Register(ctx context.Context, payload request.AuthRegister
 	}
 
 	user := &model.User{
+		ID:       uuid.NewString(),
 		FullName: payload.FullName,
 		Email:    payload.Email,
-		Password: string(hashed),
-		Role:     "user",
+		Password: hashed,
+		Role:     model.UserRoleUser,
 	}
 
-	if err := s.userRepo.Create(ctx, user); err != nil {
+	// Create empty profile row so later updates are straightforward.
+	if err := s.userRepo.Create(ctx, user, nil); err != nil {
 		if isDuplicateError(err) {
 			return nil, ErrEmailAlreadyRegistered
 		}

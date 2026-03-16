@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -12,8 +13,8 @@ type UserRepository interface {
 	GetAll(ctx context.Context) ([]model.User, error)
 	GetByID(ctx context.Context, id string) (*model.User, error)
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
-	Create(ctx context.Context, user *model.User) error
-	Update(ctx context.Context, user *model.User) error
+	Create(ctx context.Context, user *model.User, profile *model.UserProfile) error
+	Update(ctx context.Context, user *model.User, profile *model.UserProfile) error
 	Delete(ctx context.Context, id string) error
 }
 
@@ -27,13 +28,16 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 
 func (r *userRepository) GetAll(ctx context.Context) ([]model.User, error) {
 	var users []model.User
-	err := r.db.WithContext(ctx).Find(&users).Error
+	err := r.db.WithContext(ctx).
+		Preload("Profile").
+		Find(&users).Error
 	return users, err
 }
 
 func (r *userRepository) GetByID(ctx context.Context, id string) (*model.User, error) {
 	var user model.User
 	err := r.db.WithContext(ctx).
+		Preload("Profile").
 		Where("id = ?", id).
 		Take(&user).Error
 	if err != nil {
@@ -45,6 +49,7 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*model.User, e
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	var user model.User
 	err := r.db.WithContext(ctx).
+		Preload("Profile").
 		Where("email = ?", strings.ToLower(strings.TrimSpace(email))).
 		Take(&user).Error
 	if err != nil {
@@ -53,12 +58,50 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.U
 	return &user, nil
 }
 
-func (r *userRepository) Create(ctx context.Context, user *model.User) error {
-	return r.db.WithContext(ctx).Create(user).Error
+func (r *userRepository) Create(ctx context.Context, user *model.User, profile *model.UserProfile) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if user.ID == "" {
+			user.ID = uuid.NewString()
+		}
+
+		if err := tx.Create(user).Error; err != nil {
+			return err
+		}
+
+		if profile == nil {
+			profile = &model.UserProfile{}
+		}
+		profile.UserID = user.ID
+		if err := tx.Save(profile).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
-func (r *userRepository) Update(ctx context.Context, user *model.User) error {
-	return r.db.WithContext(ctx).Save(user).Error
+func (r *userRepository) Update(ctx context.Context, user *model.User, profile *model.UserProfile) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.User{}).
+			Where("id = ?", user.ID).
+			Updates(map[string]any{
+				"full_name": user.FullName,
+				"email":     user.Email,
+				"password":  user.Password,
+				"role":      user.Role,
+			}).Error; err != nil {
+			return err
+		}
+
+		if profile != nil {
+			profile.UserID = user.ID
+			if err := tx.Save(profile).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (r *userRepository) Delete(ctx context.Context, id string) error {

@@ -23,6 +23,8 @@ type UserResponse struct {
 	Department        *string           `json:"department"`
 	BankAccountNumber *string           `json:"bank_account_number"`
 	BasicSalary       *float64          `json:"basic_salary"`
+	PositionAllowance *float64          `json:"position_allowance"`
+	OtherAllowance    *float64          `json:"other_allowance"`
 	ProfilePictureID  *string           `json:"profile_picture_id"`
 	ProfilePictureURL *string           `json:"profile_picture_url"`
 	JoinedAt          *string           `json:"joined_at"`
@@ -31,25 +33,67 @@ type UserResponse struct {
 }
 
 func ToUserResponse(user model.User) UserResponse {
+	p := user.Profile
+
+	var (
+		employeeCode      *string
+		employmentStatus  *string
+		birthPlace        *string
+		birthDate         *time.Time
+		gender            *model.UserGender
+		address           *string
+		phoneNumber       *string
+		position          *string
+		department        *string
+		bankAccountNumber *string
+		basicSalary       *float64
+		positionAllowance *float64
+		otherAllowance    *float64
+		profilePictureID  *string
+		profilePictureURL *string
+		joinedAt          *string
+	)
+
+	if p != nil {
+		employeeCode = p.EmployeeCode
+		employmentStatus = p.EmploymentStatus
+		birthPlace = p.BirthPlace
+		birthDate = p.BirthDate
+		gender = p.Gender
+		address = p.Address
+		phoneNumber = p.PhoneNumber
+		position = p.Position
+		department = p.Department
+		bankAccountNumber = p.BankAccountNumber
+		basicSalary = p.BasicSalary
+		positionAllowance = p.PositionAllowance
+		otherAllowance = p.OtherAllowance
+		profilePictureID = p.ProfilePictureID
+		profilePictureURL = p.ProfilePictureURL
+		joinedAt = toTimeStringPtr(p.JoinedAt)
+	}
+
 	return UserResponse{
 		ID:                user.ID,
 		FullName:          user.FullName,
 		Email:             user.Email,
 		Role:              user.Role,
-		EmployeeCode:      user.EmployeeCode,
-		EmploymentStatus:  user.EmploymentStatus,
-		BirthPlace:        user.BirthPlace,
-		BirthDate:         user.BirthDate,
-		Gender:            user.Gender,
-		Address:           user.Address,
-		PhoneNumber:       user.PhoneNumber,
-		Position:          user.Position,
-		Department:        user.Department,
-		BankAccountNumber: user.BankAccountNumber,
-		BasicSalary:       user.BasicSalary,
-		ProfilePictureID:  user.ProfilePictureID,
-		ProfilePictureURL: user.ProfilePictureURL,
-		JoinedAt:          toTimeStringPtr(user.JoinedAt),
+		EmployeeCode:      employeeCode,
+		EmploymentStatus:  employmentStatus,
+		BirthPlace:        birthPlace,
+		BirthDate:         birthDate,
+		Gender:            gender,
+		Address:           address,
+		PhoneNumber:       phoneNumber,
+		Position:          position,
+		Department:        department,
+		BankAccountNumber: bankAccountNumber,
+		BasicSalary:       basicSalary,
+		PositionAllowance: positionAllowance,
+		OtherAllowance:    otherAllowance,
+		ProfilePictureID:  profilePictureID,
+		ProfilePictureURL: profilePictureURL,
+		JoinedAt:          joinedAt,
 		CreatedAt:         user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:         user.UpdatedAt.Format(time.RFC3339),
 	}

@@ -16,8 +16,8 @@ type mockUserRepo struct {
 	getAllFn     func(ctx context.Context) ([]model.User, error)
 	getByIDFn    func(ctx context.Context, id string) (*model.User, error)
 	getByEmailFn func(ctx context.Context, email string) (*model.User, error)
-	createFn     func(ctx context.Context, user *model.User) error
-	updateFn     func(ctx context.Context, user *model.User) error
+	createFn     func(ctx context.Context, user *model.User, profile *model.UserProfile) error
+	updateFn     func(ctx context.Context, user *model.User, profile *model.UserProfile) error
 	deleteFn     func(ctx context.Context, id string) error
 
 	getAllCalls  int
@@ -26,9 +26,11 @@ type mockUserRepo struct {
 	updateCalls  int
 	deleteCalls  int
 
-	lastCreated *model.User
-	lastUpdated *model.User
-	lastDeleted string
+	lastCreatedUser    *model.User
+	lastCreatedProfile *model.UserProfile
+	lastUpdatedUser    *model.User
+	lastUpdatedProfile *model.UserProfile
+	lastDeleted        string
 }
 
 func (m *mockUserRepo) GetAll(ctx context.Context) ([]model.User, error) {
@@ -48,16 +50,18 @@ func (m *mockUserRepo) GetByEmail(ctx context.Context, email string) (*model.Use
 	return m.getByEmailFn(ctx, email)
 }
 
-func (m *mockUserRepo) Create(ctx context.Context, user *model.User) error {
+func (m *mockUserRepo) Create(ctx context.Context, user *model.User, profile *model.UserProfile) error {
 	m.createCalls++
-	m.lastCreated = user
-	return m.createFn(ctx, user)
+	m.lastCreatedUser = user
+	m.lastCreatedProfile = profile
+	return m.createFn(ctx, user, profile)
 }
 
-func (m *mockUserRepo) Update(ctx context.Context, user *model.User) error {
+func (m *mockUserRepo) Update(ctx context.Context, user *model.User, profile *model.UserProfile) error {
 	m.updateCalls++
-	m.lastUpdated = user
-	return m.updateFn(ctx, user)
+	m.lastUpdatedUser = user
+	m.lastUpdatedProfile = profile
+	return m.updateFn(ctx, user, profile)
 }
 
 func (m *mockUserRepo) Delete(ctx context.Context, id string) error {
@@ -70,8 +74,7 @@ func strPtr(v string) *string { return &v }
 
 func TestUserService_Create_HashesPasswordAndPersists(t *testing.T) {
 	repo := &mockUserRepo{
-		createFn: func(ctx context.Context, user *model.User) error {
-			user.ID = "user_1"
+		createFn: func(ctx context.Context, user *model.User, profile *model.UserProfile) error {
 			return nil
 		},
 	}
@@ -88,27 +91,30 @@ func TestUserService_Create_HashesPasswordAndPersists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create() err = %v", err)
 	}
-	if user.ID != "user_1" {
-		t.Fatalf("Create() user.ID = %q, want %q", user.ID, "user_1")
+	if user.ID == "" {
+		t.Fatalf("Create() user.ID is empty")
 	}
 	if repo.createCalls != 1 {
 		t.Fatalf("repo.Create calls = %d, want %d", repo.createCalls, 1)
 	}
-	if repo.lastCreated == nil {
-		t.Fatalf("repo.lastCreated is nil")
+	if repo.lastCreatedUser == nil {
+		t.Fatalf("repo.lastCreatedUser is nil")
 	}
-	if repo.lastCreated.Password == "" || repo.lastCreated.Password == in.Password {
+	if repo.lastCreatedUser.Password == "" || repo.lastCreatedUser.Password == in.Password {
 		t.Fatalf("password was not hashed")
 	}
-	if !utils.CheckPassword(in.Password, repo.lastCreated.Password) {
+	if !utils.CheckPassword(in.Password, repo.lastCreatedUser.Password) {
 		t.Fatalf("stored password hash does not match input password")
+	}
+	if repo.lastCreatedProfile == nil {
+		t.Fatalf("repo.lastCreatedProfile is nil")
 	}
 }
 
 func TestUserService_Create_DuplicateEmail(t *testing.T) {
 	repo := &mockUserRepo{
-		createFn: func(ctx context.Context, user *model.User) error {
-			return errors.New("Error 1062 (23000): Duplicate entry 'x' for key 'uq_users_email'")
+		createFn: func(ctx context.Context, user *model.User, profile *model.UserProfile) error {
+			return errors.New("Error 1062 (23000): Duplicate entry x for key uq_users_email")
 		},
 	}
 	svc := &userService{userRepo: repo}
@@ -149,15 +155,12 @@ func TestUserService_Update_AppliesFieldsAndPersists(t *testing.T) {
 		FullName: oldName,
 		Email:    "old@example.com",
 		Role:     model.UserRoleUser,
+		Profile:  &model.UserProfile{UserID: "u1"},
 	}
 
 	repo := &mockUserRepo{
-		getByIDFn: func(ctx context.Context, id string) (*model.User, error) {
-			return existing, nil
-		},
-		updateFn: func(ctx context.Context, user *model.User) error {
-			return nil
-		},
+		getByIDFn: func(ctx context.Context, id string) (*model.User, error) { return existing, nil },
+		updateFn:  func(ctx context.Context, user *model.User, profile *model.UserProfile) error { return nil },
 	}
 	svc := &userService{userRepo: repo}
 
@@ -175,8 +178,8 @@ func TestUserService_Update_AppliesFieldsAndPersists(t *testing.T) {
 	if updated.Role != model.UserRoleAdmin {
 		t.Fatalf("Update() Role = %q, want %q", updated.Role, model.UserRoleAdmin)
 	}
-	if updated.PhoneNumber == nil || *updated.PhoneNumber != phone {
-		t.Fatalf("Update() PhoneNumber = %v, want %q", updated.PhoneNumber, phone)
+	if updated.Profile == nil || updated.Profile.PhoneNumber == nil || *updated.Profile.PhoneNumber != phone {
+		t.Fatalf("Update() Profile.PhoneNumber = %v, want %q", updated.Profile, phone)
 	}
 	if repo.updateCalls != 1 {
 		t.Fatalf("repo.Update calls = %d, want %d", repo.updateCalls, 1)
@@ -184,10 +187,10 @@ func TestUserService_Update_AppliesFieldsAndPersists(t *testing.T) {
 }
 
 func TestUserService_Update_DuplicateEmail(t *testing.T) {
-	existing := &model.User{ID: "u1", FullName: "A", Email: "a@a.com", Role: model.UserRoleUser}
+	existing := &model.User{ID: "u1", FullName: "A", Email: "a@a.com", Role: model.UserRoleUser, Profile: &model.UserProfile{UserID: "u1"}}
 	repo := &mockUserRepo{
 		getByIDFn: func(ctx context.Context, id string) (*model.User, error) { return existing, nil },
-		updateFn: func(ctx context.Context, user *model.User) error {
+		updateFn: func(ctx context.Context, user *model.User, profile *model.UserProfile) error {
 			return errors.New("duplicate entry")
 		},
 	}
@@ -200,10 +203,10 @@ func TestUserService_Update_DuplicateEmail(t *testing.T) {
 }
 
 func TestUserService_UpdateProfile_HashesPassword(t *testing.T) {
-	existing := &model.User{ID: "u1", FullName: "A", Email: "a@a.com", Role: model.UserRoleUser, Password: "oldhash"}
+	existing := &model.User{ID: "u1", FullName: "A", Email: "a@a.com", Role: model.UserRoleUser, Password: "oldhash", Profile: &model.UserProfile{UserID: "u1"}}
 	repo := &mockUserRepo{
 		getByIDFn: func(ctx context.Context, id string) (*model.User, error) { return existing, nil },
-		updateFn:  func(ctx context.Context, user *model.User) error { return nil },
+		updateFn:  func(ctx context.Context, user *model.User, profile *model.UserProfile) error { return nil },
 	}
 	svc := &userService{userRepo: repo}
 
@@ -241,7 +244,7 @@ func TestUserService_Delete_NotFound(t *testing.T) {
 }
 
 func TestUserService_Delete_DeletesExisting(t *testing.T) {
-	existing := &model.User{ID: "u1", FullName: "A", Email: "a@a.com", Role: model.UserRoleUser}
+	existing := &model.User{ID: "u1", FullName: "A", Email: "a@a.com", Role: model.UserRoleUser, Profile: &model.UserProfile{UserID: "u1"}}
 	repo := &mockUserRepo{
 		getByIDFn: func(ctx context.Context, id string) (*model.User, error) { return existing, nil },
 		deleteFn:  func(ctx context.Context, id string) error { return nil },
@@ -282,17 +285,19 @@ func TestUserService_Create_PassesOptionalFields(t *testing.T) {
 	birthDate := time.Date(1995, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	repo := &mockUserRepo{
-		createFn: func(ctx context.Context, user *model.User) error {
-			if user.EmployeeCode == nil || *user.EmployeeCode != employeeCode {
+		createFn: func(ctx context.Context, user *model.User, profile *model.UserProfile) error {
+			if profile == nil {
+				return errors.New("profile not passed")
+			}
+			if profile.EmployeeCode == nil || *profile.EmployeeCode != employeeCode {
 				return errors.New("employee_code not passed")
 			}
-			if user.BasicSalary == nil || *user.BasicSalary != basicSalary {
+			if profile.BasicSalary == nil || *profile.BasicSalary != basicSalary {
 				return errors.New("basic_salary not passed")
 			}
-			if user.BirthDate == nil || !user.BirthDate.Equal(birthDate) {
+			if profile.BirthDate == nil || !profile.BirthDate.Equal(birthDate) {
 				return errors.New("birth_date not passed")
 			}
-			user.ID = "u1"
 			return nil
 		},
 	}

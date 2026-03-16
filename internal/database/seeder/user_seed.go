@@ -6,6 +6,7 @@ import (
 	"github.com/afifudin23/absensi-king-royal-api/internal/config"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
+	"github.com/google/uuid"
 )
 
 func SeedUsers() {
@@ -24,14 +25,22 @@ func SeedUsers() {
 	}
 
 	users := []model.User{
-		{FullName: "Admin", Email: "admin@kingroyal.com", Password: adminPassword, Role: "admin"},
-		{FullName: "User", Email: "user@kingroyal.com", Password: userPassword, Role: "user"},
+		{ID: uuid.NewString(), FullName: "Admin", Email: "admin@kingroyal.com", Password: adminPassword, Role: "admin"},
+		{ID: uuid.NewString(), FullName: "User", Email: "user@kingroyal.com", Password: userPassword, Role: "user"},
 	}
+
 	for _, user := range users {
 		var existing model.User
-		err := db.Where("email = ?", user.Email).FirstOrCreate(&existing, user).Error
+		err := db.Where("email = ?", user.Email).Attrs(user).FirstOrCreate(&existing).Error
 		if err != nil {
 			log.Printf("Failed seed user %s: %v\n", user.Email, err)
+			continue
+		}
+
+		var profile model.UserProfile
+		err = db.Where("user_id = ?", existing.ID).Attrs(model.UserProfile{UserID: existing.ID}).FirstOrCreate(&profile).Error
+		if err != nil {
+			log.Printf("Failed seed user_profile for %s: %v\n", user.Email, err)
 		}
 	}
 }

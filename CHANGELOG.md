@@ -4,6 +4,31 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.1] - 2026-03-17
+
+### Added
+
+- User payload/response now include allowances:
+  - position_allowance
+  - other_allowance
+
+### Changed
+
+- User profile fields moved from `users` into new 1:1 table `user_profiles` and are eager-loaded via GORM `Preload("Profile")`.
+- Migration `20260301153134` now creates `user_profiles` and links `user_profiles.profile_picture_id` to `files(id)` (replacing the previous FK on `users`).
+
+### Fixed
+
+- Seeder now generates UUID `users.id` and ensures `user_profiles` row exists; prevents empty-id inserts.
+
+### Migration Required
+
+- Yes.
+- Run:
+  - `make migrate-up`
+
+---
+
 ## [0.5.0] - 2026-03-16
 
 ### Added
@@ -19,8 +44,8 @@ All notable changes to this project are documented in this file.
   - Migrations:
     - `migrations/20260301151022_create_files_table.up.sql`
     - `migrations/20260301151022_create_files_table.down.sql`
-    - `migrations/20260301153134_create_fk_users_files.up.sql`
-    - `migrations/20260301153134_create_fk_users_files.down.sql`
+    - `migrations/20260301153134_create_user_profiles.up.sql`
+    - `migrations/20260301153134_create_user_profiles.down.sql`
 - Unit tests:
   - `internal/service/user_service_test.go`
 

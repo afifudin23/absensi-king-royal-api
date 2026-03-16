@@ -1,35 +1,15 @@
-
 CREATE TABLE IF NOT EXISTS users (
     id CHAR(36) NOT NULL DEFAULT (UUID()),
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
-    employee_code VARCHAR(100) NULL,
-    employment_status ENUM('permanent', 'contract', 'internship', 'freelance') NULL,
-    birth_place VARCHAR(100) NULL,
-    birth_date DATE NULL, 
-    gender ENUM('male', 'female', 'other') NULL,
-    address TEXT NULL,
-    phone_number VARCHAR(20) NULL,
-    position VARCHAR(100) NULL,
-    department VARCHAR(100) NULL,
-    bank_account_number VARCHAR(100) NULL,
-    basic_salary DECIMAL(15,2) NULL,
-    profile_picture_id CHAR(36) NULL,
-    profile_picture_url TEXT NULL,
 
-    joined_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_email (email),
-    KEY idx_users_employee_code (employee_code),
     KEY idx_users_role (role),
-    KEY idx_users_employment_status (employment_status),
-    KEY idx_users_gender (gender),
-    KEY idx_users_full_name (full_name),
-    KEY idx_users_position (position),
-    KEY idx_users_department (department)
+    KEY idx_users_full_name (full_name)
 );

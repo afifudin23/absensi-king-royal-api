@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
 	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
+	"github.com/google/uuid"
 )
 
 type UserService interface {
@@ -29,11 +31,7 @@ func NewUserService(userRepo repository.UserRepository, fileRepo repository.File
 }
 
 func (s *userService) GetAll(ctx context.Context) ([]model.User, error) {
-	users, err := s.userRepo.GetAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return users, nil
+	return s.userRepo.GetAll(ctx)
 }
 
 func (s *userService) Create(ctx context.Context, payload request.UserCreateRequest) (*model.User, error) {
@@ -42,7 +40,31 @@ func (s *userService) Create(ctx context.Context, payload request.UserCreateRequ
 		return nil, err
 	}
 
-	var profilePictureURL *string
+	user := &model.User{
+		ID:       uuid.NewString(),
+		FullName: payload.FullName,
+		Email:    payload.Email,
+		Password: hashedPassword,
+		Role:     payload.Role,
+	}
+
+	profile := &model.UserProfile{
+		UserID:            user.ID,
+		EmployeeCode:      payload.EmployeeCode,
+		EmploymentStatus:  payload.EmploymentStatus,
+		BirthPlace:        payload.BirthPlace,
+		BirthDate:         payload.BirthDate,
+		Gender:            payload.Gender,
+		Address:           payload.Address,
+		PhoneNumber:       payload.PhoneNumber,
+		Position:          payload.Position,
+		Department:        payload.Department,
+		BankAccountNumber: payload.BankAccountNumber,
+		BasicSalary:       payload.BasicSalary,
+		PositionAllowance: payload.PositionAllowance,
+		OtherAllowance:    payload.OtherAllowance,
+	}
+
 	if payload.ProfilePictureID != nil {
 		if s.fileRepo == nil {
 			return nil, common.InternalServerError()
@@ -58,36 +80,21 @@ func (s *userService) Create(ctx context.Context, payload request.UserCreateRequ
 		if file.Type != model.FileTypeProfilePicture {
 			return nil, common.BadRequestError("Invalid file type for profile picture")
 		}
+
 		url := file.FileURL
-		profilePictureURL = &url
+		profile.ProfilePictureID = payload.ProfilePictureID
+		profile.ProfilePictureURL = &url
 	}
 
-	user := &model.User{
-		FullName: payload.FullName,
-		Email:    payload.Email,
-		Password: hashedPassword,
-		Role:     payload.Role,
+	user.Profile = profile
 
-		EmployeeCode:      payload.EmployeeCode,
-		EmploymentStatus:  payload.EmploymentStatus,
-		BirthPlace:        payload.BirthPlace,
-		BirthDate:         payload.BirthDate,
-		Gender:            payload.Gender,
-		Address:           payload.Address,
-		PhoneNumber:       payload.PhoneNumber,
-		Position:          payload.Position,
-		Department:        payload.Department,
-		BankAccountNumber: payload.BankAccountNumber,
-		BasicSalary:       payload.BasicSalary,
-		ProfilePictureURL: profilePictureURL,
-		ProfilePictureID:  payload.ProfilePictureID,
-	}
-	if err := s.userRepo.Create(ctx, user); err != nil {
+	if err := s.userRepo.Create(ctx, user, profile); err != nil {
 		if isDuplicateError(err) {
 			return nil, ErrEmailAlreadyRegistered
 		}
 		return nil, err
 	}
+
 	return user, nil
 }
 
@@ -111,7 +118,8 @@ func (s *userService) Update(ctx context.Context, userID string, payload request
 		return nil, err
 	}
 
-	applyUserUpdateRequest(user, payload)
+	profile := ensureUserProfile(user)
+	applyUserUpdateRequest(user, profile, payload)
 
 	if payload.ProfilePictureID != nil {
 		if s.fileRepo == nil {
@@ -133,16 +141,18 @@ func (s *userService) Update(ctx context.Context, userID string, payload request
 		}
 
 		url := file.FileURL
-		user.ProfilePictureID = payload.ProfilePictureID
-		user.ProfilePictureURL = &url
+		profile.ProfilePictureID = payload.ProfilePictureID
+		profile.ProfilePictureURL = &url
 	}
 
-	if err := s.userRepo.Update(ctx, user); err != nil {
+	if err := s.userRepo.Update(ctx, user, profile); err != nil {
 		if isDuplicateError(err) {
 			return nil, ErrEmailAlreadyRegistered
 		}
 		return nil, err
 	}
+
+	user.Profile = profile
 	return user, nil
 }
 
@@ -155,6 +165,8 @@ func (s *userService) UpdateProfile(ctx context.Context, userID string, payload 
 		return nil, err
 	}
 
+	profile := ensureUserProfile(user)
+
 	if payload.Password != nil && *payload.Password != "" {
 		hashedPassword, err := utils.HashPassword(*payload.Password)
 		if err != nil {
@@ -163,7 +175,7 @@ func (s *userService) UpdateProfile(ctx context.Context, userID string, payload 
 		user.Password = hashedPassword
 	}
 
-	applyUserUpdateProfileRequest(user, payload)
+	applyUserUpdateProfileRequest(user, profile, payload)
 
 	if payload.ProfilePictureID != nil {
 		if s.fileRepo == nil {
@@ -185,16 +197,18 @@ func (s *userService) UpdateProfile(ctx context.Context, userID string, payload 
 		}
 
 		url := file.FileURL
-		user.ProfilePictureID = payload.ProfilePictureID
-		user.ProfilePictureURL = &url
+		profile.ProfilePictureID = payload.ProfilePictureID
+		profile.ProfilePictureURL = &url
 	}
 
-	if err := s.userRepo.Update(ctx, user); err != nil {
+	if err := s.userRepo.Update(ctx, user, profile); err != nil {
 		if isDuplicateError(err) {
 			return nil, ErrEmailAlreadyRegistered
 		}
 		return nil, err
 	}
+
+	user.Profile = profile
 	return user, nil
 }
 
@@ -209,7 +223,14 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 	return s.userRepo.Delete(ctx, userID)
 }
 
-func applyUserUpdateRequest(existing *model.User, payload request.UserUpdateRequest) {
+func ensureUserProfile(user *model.User) *model.UserProfile {
+	if user.Profile == nil {
+		user.Profile = &model.UserProfile{UserID: user.ID}
+	}
+	return user.Profile
+}
+
+func applyUserUpdateRequest(existing *model.User, profile *model.UserProfile, payload request.UserUpdateRequest) {
 	if payload.FullName != nil {
 		existing.FullName = *payload.FullName
 	}
@@ -217,42 +238,24 @@ func applyUserUpdateRequest(existing *model.User, payload request.UserUpdateRequ
 		existing.Role = model.UserRole(*payload.Role)
 	}
 
-	if payload.EmployeeCode != nil {
-		existing.EmployeeCode = payload.EmployeeCode
-	}
-	if payload.EmploymentStatus != nil {
-		existing.EmploymentStatus = payload.EmploymentStatus
-	}
-	if payload.BirthPlace != nil {
-		existing.BirthPlace = payload.BirthPlace
-	}
-	if payload.BirthDate != nil {
-		existing.BirthDate = payload.BirthDate
-	}
-	if payload.Gender != nil {
-		existing.Gender = payload.Gender
-	}
-	if payload.Address != nil {
-		existing.Address = payload.Address
-	}
-	if payload.PhoneNumber != nil {
-		existing.PhoneNumber = payload.PhoneNumber
-	}
-	if payload.Position != nil {
-		existing.Position = payload.Position
-	}
-	if payload.Department != nil {
-		existing.Department = payload.Department
-	}
-	if payload.BankAccountNumber != nil {
-		existing.BankAccountNumber = payload.BankAccountNumber
-	}
-	if payload.BasicSalary != nil {
-		existing.BasicSalary = payload.BasicSalary
-	}
+	applyUserProfileUpdates(profile,
+		payload.EmployeeCode,
+		payload.EmploymentStatus,
+		payload.BirthPlace,
+		payload.BirthDate,
+		payload.Gender,
+		payload.Address,
+		payload.PhoneNumber,
+		payload.Position,
+		payload.Department,
+		payload.BankAccountNumber,
+		payload.BasicSalary,
+		payload.PositionAllowance,
+		payload.OtherAllowance,
+	)
 }
 
-func applyUserUpdateProfileRequest(existing *model.User, payload request.UserUpdateProfileRequest) {
+func applyUserUpdateProfileRequest(existing *model.User, profile *model.UserProfile, payload request.UserUpdateProfileRequest) {
 	if payload.FullName != nil {
 		existing.FullName = *payload.FullName
 	}
@@ -263,34 +266,77 @@ func applyUserUpdateProfileRequest(existing *model.User, payload request.UserUpd
 		existing.Role = *payload.Role
 	}
 
-	if payload.EmployeeCode != nil {
-		existing.EmployeeCode = payload.EmployeeCode
+	applyUserProfileUpdates(profile,
+		payload.EmployeeCode,
+		payload.EmploymentStatus,
+		payload.BirthPlace,
+		payload.BirthDate,
+		payload.Gender,
+		payload.Address,
+		payload.PhoneNumber,
+		payload.Position,
+		payload.Department,
+		payload.BankAccountNumber,
+		nil,
+		payload.PositionAllowance,
+		payload.OtherAllowance,
+	)
+}
+
+func applyUserProfileUpdates(
+	profile *model.UserProfile,
+	employeeCode *string,
+	employmentStatus *string,
+	birthPlace *string,
+	birthDate *time.Time,
+	gender *model.UserGender,
+	address *string,
+	phoneNumber *string,
+	position *string,
+	department *string,
+	bankAccountNumber *string,
+	basicSalary *float64,
+	positionAllowance *float64,
+	otherAllowance *float64,
+) {
+	// NOTE: keep request/response schema unchanged; only persistence changes.
+	if employeeCode != nil {
+		profile.EmployeeCode = employeeCode
 	}
-	if payload.EmploymentStatus != nil {
-		existing.EmploymentStatus = payload.EmploymentStatus
+	if employmentStatus != nil {
+		profile.EmploymentStatus = employmentStatus
 	}
-	if payload.BirthPlace != nil {
-		existing.BirthPlace = payload.BirthPlace
+	if birthPlace != nil {
+		profile.BirthPlace = birthPlace
 	}
-	if payload.BirthDate != nil {
-		existing.BirthDate = payload.BirthDate
+	if birthDate != nil {
+		profile.BirthDate = birthDate
 	}
-	if payload.Gender != nil {
-		existing.Gender = payload.Gender
+	if gender != nil {
+		profile.Gender = gender
 	}
-	if payload.Address != nil {
-		existing.Address = payload.Address
+	if address != nil {
+		profile.Address = address
 	}
-	if payload.PhoneNumber != nil {
-		existing.PhoneNumber = payload.PhoneNumber
+	if phoneNumber != nil {
+		profile.PhoneNumber = phoneNumber
 	}
-	if payload.Position != nil {
-		existing.Position = payload.Position
+	if position != nil {
+		profile.Position = position
 	}
-	if payload.Department != nil {
-		existing.Department = payload.Department
+	if department != nil {
+		profile.Department = department
 	}
-	if payload.BankAccountNumber != nil {
-		existing.BankAccountNumber = payload.BankAccountNumber
+	if bankAccountNumber != nil {
+		profile.BankAccountNumber = bankAccountNumber
+	}
+	if basicSalary != nil {
+		profile.BasicSalary = basicSalary
+	}
+	if positionAllowance != nil {
+		profile.PositionAllowance = positionAllowance
+	}
+	if otherAllowance != nil {
+		profile.OtherAllowance = otherAllowance
 	}
 }
