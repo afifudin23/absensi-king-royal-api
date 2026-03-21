@@ -84,3 +84,20 @@ func (h *AttendanceHandler) GetLogs(c *gin.Context) {
 	)
 	c.JSON(http.StatusOK, common.SuccessResponse(response.ToAttendanceListResponse(logs)))
 }
+
+func (h *AttendanceHandler) Update(c *gin.Context) {
+	var payload request.AttendanceUpdateRequest
+	attendanceID := c.Param("attendance_id")
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.ErrorHandler(c, common.ValidationError(common.ErrorValidation(err)))
+		return
+	}
+
+	attendance, err := h.service.Update(c.Request.Context(), attendanceID, payload)
+	if err != nil {
+		common.ErrorHandler(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, common.SuccessResponse(common.ToSuccessResponse(attendance.ID)))
+}

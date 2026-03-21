@@ -13,6 +13,7 @@ type AttendanceRepository interface {
 	Create(ctx context.Context, attendance *model.Attendance) error
 	Update(ctx context.Context, attendance *model.Attendance) error
 	GetLogsByUserID(ctx context.Context, userID string) ([]model.Attendance, error)
+	GetByID(ctx context.Context, id string) (*model.Attendance, error)
 }
 
 type attendanceRepository struct {
@@ -49,4 +50,15 @@ func (r *attendanceRepository) GetLogsByUserID(ctx context.Context, userID strin
 		Order("date DESC, created_at DESC").
 		Find(&logs).Error
 	return logs, err
+}
+
+func (r *attendanceRepository) GetByID(ctx context.Context, id string) (*model.Attendance, error) {
+	var attendance model.Attendance
+	err := r.db.WithContext(ctx).
+		Where("id = ?", id).
+		Take(&attendance).Error
+	if err != nil {
+		return nil, err
+	}
+	return &attendance, nil
 }

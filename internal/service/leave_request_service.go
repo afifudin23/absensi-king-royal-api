@@ -102,7 +102,7 @@ func (s *leaveRequestService) GetByUserID(ctx context.Context, userID string) ([
 func (s *leaveRequestService) Update(ctx context.Context, userID string, id string, payload request.LeaveRequestUpdateRequest) (*model.LeaveRequest, error) {
 	existing, err := s.leaveRepo.GetByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if isNotFoundError(err) {
 			return nil, common.NotFoundError("Leave request not found")
 		}
 		return nil, err

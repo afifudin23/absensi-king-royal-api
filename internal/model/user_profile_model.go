@@ -4,7 +4,7 @@ import "time"
 
 type UserProfile struct {
 	ID                string      `gorm:"column:id;type:char(36);primaryKey;default:(UUID())"`
-	UserID            string      `gorm:"column:user_id;type:char(36);primaryKey"`
+	UserID            string      `gorm:"column:user_id;type:char(36);not null"`
 	EmployeeCode      *string     `gorm:"column:employee_code;type:varchar(100);null"`
 	EmploymentStatus  *string     `gorm:"column:employment_status;type:enum('permanent','contract','internship','freelance');null"`
 	BirthPlace        *string     `gorm:"column:birth_place;type:varchar(100);null"`

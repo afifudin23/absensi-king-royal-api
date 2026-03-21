@@ -10,3 +10,8 @@ type AttendanceRequest struct {
 func (rq *AttendanceRequest) Normalize() {
 	rq.FileID = strings.TrimSpace(rq.FileID)
 }
+
+type AttendanceUpdateRequest struct {
+	CheckInAt  *string `json:"check_in_at"`
+	CheckOutAt *string `json:"check_out_at"`
+}

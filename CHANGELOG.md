@@ -4,6 +4,55 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.6.0] - 2026-03-21
+
+### Added
+
+- Payroll settings module:
+  - `GET /api/v1/payroll-settings`
+  - `POST /api/v1/payroll-settings`
+  - `PATCH /api/v1/payroll-settings/:payroll_id`
+  - `PUT /api/v1/payroll-settings/bulk`
+  - `DELETE /api/v1/payroll-settings/:payroll_id`
+- Payroll settings domain implementation:
+  - Model: `internal/model/payroll_setting_model.go`
+  - Repository: `internal/repository/payroll_setting_repository.go`
+  - Service: `internal/service/payroll_setting_service.go`
+  - Handler: `internal/delivery/http/handler/payroll_setting_handler.go`
+  - Request DTO: `internal/delivery/http/request/payroll_setting_request.go`
+  - Response DTO: `internal/delivery/http/response/payroll_setting_response.go`
+  - Router registration: `internal/delivery/http/router/payroll_setting_route.go`
+- Payroll settings migration:
+  - `migrations/20260321125730_create_payroll_settings_table.up.sql`
+  - `migrations/20260321125730_create_payroll_settings_table.down.sql`
+- Attendance update endpoint:
+  - `PATCH /api/v1/attendance/:attendance_id`
+
+### Changed
+
+- Attendance service now supports manual update payloads for `check_in_at` and `check_out_at`.
+- Attendance repository now supports lookup by attendance ID for update flow.
+- Attendance migration now includes `status` column with default `present`.
+- Main router now registers payroll settings routes and removes the unused photo route registration.
+- User profile model no longer marks `user_id` as a primary key in GORM tags.
+
+### Fixed
+
+- Attendance patch route now calls the update handler instead of falling through to logs.
+- Attendance update flow now persists updated timestamps without returning a nil object.
+- Leave request update now uses the shared not-found helper for consistent 404 handling.
+- Payroll setting bulk update now returns updated rows correctly instead of appending the GORM result object.
+- Payroll setting bulk update now reports the missing `config_key` in not-found errors.
+- Attendance check-in invalid file response now returns `Invalid file_id` consistently.
+
+### Migration Required
+
+- Yes.
+- Run:
+  - `make migrate-up`
+
+---
+
 ## [0.5.1] - 2026-03-17
 
 ### Added

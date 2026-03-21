@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS attendances (
     id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
     user_id CHAR(36) NOT NULL,
+    status ENUM('present', 'off', 'sick', 'extra_off', 'absent', 'leave') NOT NULL DEFAULT 'present',
     date DATE NOT NULL,
     check_in_at DATETIME NULL,
     check_out_at DATETIME NULL,

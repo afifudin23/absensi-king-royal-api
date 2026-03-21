@@ -16,6 +16,7 @@ type AttendanceService interface {
 	CheckIn(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error)
 	CheckOut(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error)
 	GetLogs(ctx context.Context, userID string) ([]model.Attendance, error)
+	Update(ctx context.Context, id string, payload request.AttendanceUpdateRequest) (*model.Attendance, error)
 }
 
 type attendanceService struct {
@@ -35,7 +36,7 @@ func (s *attendanceService) CheckIn(ctx context.Context, userID string, payload 
 	file, err := s.fileRepo.GetByID(ctx, payload.FileID)
 	if err != nil {
 		if isNotFoundError(err) {
-			return nil, common.BadRequestError("File not found")
+			return nil, common.BadRequestError("Invalid file_id")
 		}
 		return nil, err
 	}
@@ -131,6 +132,57 @@ func (s *attendanceService) CheckOut(ctx context.Context, userID string, payload
 
 func (s *attendanceService) GetLogs(ctx context.Context, userID string) ([]model.Attendance, error) {
 	return s.attendanceRepo.GetLogsByUserID(ctx, userID)
+}
+
+func (s *attendanceService) Update(ctx context.Context, id string, payload request.AttendanceUpdateRequest) (*model.Attendance, error) {
+	existing, err := s.attendanceRepo.GetByID(ctx, id)
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil, common.NotFoundError("Attendance not found")
+		}
+		return nil, err
+	}
+
+	if payload.CheckInAt != nil && *payload.CheckInAt != "" {
+		checkInTime, err := CombineDateAndHHMM(existing.Date, *payload.CheckInAt)
+		if err != nil {
+			return nil, err
+		}
+		existing.CheckInAt = checkInTime
+	}
+
+	if payload.CheckOutAt != nil && *payload.CheckOutAt != "" {
+		checkOut, err := CombineDateAndHHMM(existing.Date, *payload.CheckOutAt)
+		if err != nil {
+			return nil, err
+		}
+		existing.CheckOutAt = checkOut
+	}
+	if err := s.attendanceRepo.Update(ctx, existing); err != nil {
+		return nil, err
+	}
+
+	return existing, nil
+}
+
+func CombineDateAndHHMM(date time.Time, hhmm string) (*time.Time, error) {
+	parsed, err := time.Parse("15:04", hhmm)
+	if err != nil {
+		return nil, err
+	}
+
+	result := time.Date(
+		date.Year(),
+		date.Month(),
+		date.Day(),
+		parsed.Hour(),
+		parsed.Minute(),
+		0,
+		0,
+		time.Local,
+	)
+
+	return &result, nil
 }
 
 func startOfDay(t time.Time) time.Time {
