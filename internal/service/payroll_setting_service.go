@@ -15,7 +15,7 @@ type PayrollSettingService interface {
 	Create(ctx context.Context, payload request.PayrollSettingRequest) (*model.PayrollSetting, error)
 	Update(ctx context.Context, id string, payload request.PayrollSettingRequest) (*model.PayrollSetting, error)
 	UpdateBulk(ctx context.Context, payload []request.PayrollSettingByKeyRequest) ([]model.PayrollSetting, error)
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, payload request.PayrollSettingIdsRequest) (int, error)
 }
 
 type payrollSettingService struct {
@@ -37,6 +37,9 @@ func (s *payrollSettingService) Create(ctx context.Context, payload request.Payr
 		Value:      payload.Value,
 	}
 	if err := s.payrollSettingRepo.Create(ctx, &data); err != nil {
+		if isDuplicateError(err) {
+			return nil, ErrPayrollSettingAlreadyExists
+		}
 		return nil, err
 	}
 	return &data, nil
@@ -75,8 +78,8 @@ func (s *payrollSettingService) UpdateBulk(ctx context.Context, payload []reques
 	return updatedPayrollSettings, nil
 }
 
-func (s *payrollSettingService) Delete(ctx context.Context, id string) error {
-	return s.payrollSettingRepo.Delete(ctx, id)
+func (s *payrollSettingService) Delete(ctx context.Context, payload request.PayrollSettingIdsRequest) (int, error) {
+	return s.payrollSettingRepo.Delete(ctx, payload.IDs)
 }
 
 func normalizeConfigKey(key string) string {

@@ -8,9 +8,10 @@ import (
 )
 
 var (
-	ErrEmailAlreadyRegistered = errors.New("Email is already registered")
-	ErrInvalidCredentials     = errors.New("Email or password is invalid, please try again")
-	ErrUserNotFound           = errors.New("User not found")
+	ErrEmailAlreadyRegistered      = errors.New("Email is already registered")
+	ErrInvalidCredentials          = errors.New("Email or password is invalid, please try again")
+	ErrUserNotFound                = errors.New("User not found")
+	ErrPayrollSettingAlreadyExists = errors.New("Payroll setting already exists")
 )
 
 func isDuplicateError(err error) bool {

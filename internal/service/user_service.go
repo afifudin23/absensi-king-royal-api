@@ -286,7 +286,7 @@ func applyUserUpdateProfileRequest(existing *model.User, profile *model.UserProf
 func applyUserProfileUpdates(
 	profile *model.UserProfile,
 	employeeCode *string,
-	employmentStatus *string,
+	employmentStatus *model.UserEmploymentStatus,
 	birthPlace *string,
 	birthDate *time.Time,
 	gender *model.UserGender,

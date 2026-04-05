@@ -18,6 +18,7 @@ type LeaveRequestService interface {
 	GetByID(ctx context.Context, id string) (*model.LeaveRequest, error)
 	GetByUserID(ctx context.Context, userID string) ([]model.LeaveRequest, error)
 	Update(ctx context.Context, userID string, id string, payload request.LeaveRequestUpdateRequest) (*model.LeaveRequest, error)
+	UpdateStatus(ctx context.Context, id string, payload request.LeaveRequestUpdateStatusRequest) (*model.LeaveRequest, error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -188,6 +189,31 @@ func (s *leaveRequestService) Update(ctx context.Context, userID string, id stri
 	}
 
 	return updated, nil
+}
+
+func (s *leaveRequestService) UpdateStatus(ctx context.Context, id string, payload request.LeaveRequestUpdateStatusRequest) (*model.LeaveRequest, error) {
+	existing, err := s.leaveRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.NotFoundError("Leave request not found")
+		}
+		return nil, err
+	}
+
+	data := &model.LeaveRequest{
+		ID:     id,
+		Status: payload.Status,
+	}
+
+	if err := s.leaveRepo.Update(ctx, data); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.NotFoundError("Leave request not found")
+		}
+		return nil, err
+	}
+
+	existing.Status = payload.Status
+	return existing, nil
 }
 
 func (s *leaveRequestService) Delete(ctx context.Context, id string) error {

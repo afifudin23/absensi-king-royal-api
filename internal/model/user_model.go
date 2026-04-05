@@ -2,14 +2,9 @@ package model
 
 import "time"
 
-type UserGender string
 type UserRole string
 
-const (
-	UserGenderMale   UserGender = "male"
-	UserGenderFemale UserGender = "female"
-	UserGenderOther  UserGender = "other"
-)
+
 
 const (
 	UserRoleAdmin UserRole = "admin"

@@ -24,6 +24,7 @@ func registerLeaveRequestRoutes(rg *gin.RouterGroup) {
 		leaveRequest.GET("/me", leaveRequestHandler.GetByUserID)
 		leaveRequest.GET("/:leave_id", leaveRequestHandler.GetByID)
 		leaveRequest.PUT("/:leave_id", leaveRequestHandler.Update)
+		leaveRequest.PATCH("/:leave_id/status", middleware.AdminOnly(), leaveRequestHandler.UpdateStatus)
 		leaveRequest.DELETE("/:leave_id", leaveRequestHandler.Delete)
 	}
 

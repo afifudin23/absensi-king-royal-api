@@ -12,24 +12,24 @@ type UserResponse struct {
 	Email    string         `json:"email"`
 	Role     model.UserRole `json:"role"`
 
-	EmployeeCode      *string           `json:"employee_code"`
-	EmploymentStatus  *string           `json:"employment_status"`
-	BirthPlace        *string           `json:"birth_place"`
-	BirthDate         *time.Time        `json:"birth_date"`
-	Gender            *model.UserGender `json:"gender"`
-	Address           *string           `json:"address"`
-	PhoneNumber       *string           `json:"phone_number"`
-	Position          *string           `json:"position"`
-	Department        *string           `json:"department"`
-	BankAccountNumber *string           `json:"bank_account_number"`
-	BasicSalary       *float64          `json:"basic_salary"`
-	PositionAllowance *float64          `json:"position_allowance"`
-	OtherAllowance    *float64          `json:"other_allowance"`
-	ProfilePictureID  *string           `json:"profile_picture_id"`
-	ProfilePictureURL *string           `json:"profile_picture_url"`
-	JoinedAt          *string           `json:"joined_at"`
-	CreatedAt         string            `json:"created_at"`
-	UpdatedAt         string            `json:"updated_at"`
+	EmployeeCode      *string                     `json:"employee_code"`
+	EmploymentStatus  *model.UserEmploymentStatus `json:"employment_status"`
+	BirthPlace        *string                     `json:"birth_place"`
+	BirthDate         *time.Time                  `json:"birth_date"`
+	Gender            *model.UserGender           `json:"gender"`
+	Address           *string                     `json:"address"`
+	PhoneNumber       *string                     `json:"phone_number"`
+	Position          *string                     `json:"position"`
+	Department        *string                     `json:"department"`
+	BankAccountNumber *string                     `json:"bank_account_number"`
+	BasicSalary       *float64                    `json:"basic_salary"`
+	PositionAllowance *float64                    `json:"position_allowance"`
+	OtherAllowance    *float64                    `json:"other_allowance"`
+	ProfilePictureID  *string                     `json:"profile_picture_id"`
+	ProfilePictureURL *string                     `json:"profile_picture_url"`
+	JoinedAt          *string                     `json:"joined_at"`
+	CreatedAt         string                      `json:"created_at"`
+	UpdatedAt         string                      `json:"updated_at"`
 }
 
 func ToUserResponse(user model.User) UserResponse {
@@ -37,7 +37,7 @@ func ToUserResponse(user model.User) UserResponse {
 
 	var (
 		employeeCode      *string
-		employmentStatus  *string
+		employmentStatus  *model.UserEmploymentStatus
 		birthPlace        *string
 		birthDate         *time.Time
 		gender            *model.UserGender

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
@@ -38,6 +39,10 @@ func (h *PayrollSettingHandler) Create(c *gin.Context) {
 
 	payrollSetting, err := h.service.Create(c.Request.Context(), payload)
 	if err != nil {
+		if errors.Is(err, service.ErrPayrollSettingAlreadyExists) {
+			common.ErrorHandler(c, common.BadRequestError(err.Error()))
+			return
+		}
 		common.ErrorHandler(c, err)
 		return
 	}
@@ -64,14 +69,13 @@ func (h *PayrollSettingHandler) Update(c *gin.Context) {
 }
 
 func (h *PayrollSettingHandler) UpdateBulk(c *gin.Context) {
-	var payload []request.PayrollSettingByKeyRequest
-
+	var payload request.PayrollSettingUpdateBulkRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		common.ErrorHandler(c, common.ValidationError(common.ErrorValidation(err)))
 		return
 	}
 
-	payrollSettings, err := h.service.UpdateBulk(c.Request.Context(), payload)
+	payrollSettings, err := h.service.UpdateBulk(c.Request.Context(), payload.Settings)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
@@ -81,12 +85,25 @@ func (h *PayrollSettingHandler) UpdateBulk(c *gin.Context) {
 }
 
 func (h *PayrollSettingHandler) Delete(c *gin.Context) {
-	payrollID := c.Param("payroll_id")
-	err := h.service.Delete(c.Request.Context(), payrollID)
+	var payload request.PayrollSettingIdsRequest
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.ErrorHandler(c, common.ValidationError(common.ErrorValidation(err)))
+		return
+	}
+
+	deletedCount, err := h.service.Delete(c.Request.Context(), payload)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, common.SuccessResponse(common.ToSuccessResponse(payrollID)))
+	// Semantics:
+	// - total = jumlah data yang berhasil dihapus (kalau tidak ada yang match: 0)
+	// - skipped_count tidak dipakai di payroll settings delete (0)
+	total := deletedCount
+	c.JSON(
+		http.StatusOK,
+		common.SuccessResponse(response.ToPayrollSettingDeleteResponse(total, deletedCount, 0)),
+	)
 }

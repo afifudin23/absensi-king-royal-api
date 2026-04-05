@@ -65,6 +65,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Set user id from token claims for downstream handlers.
 		c.Set("uid", user.ID)
+		c.Set("role", user.Role)
 		ctx := logger.WithUserID(c.Request.Context(), user.ID)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()

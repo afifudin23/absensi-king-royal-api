@@ -4,6 +4,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.6.1] - 2026-04-05
+
+### Added
+
+- Leave request status update endpoint: `PATCH /api/v1/leave-requests/:leave_id/status` (admin only).
+
+### Changed
+
+- Payroll setting bulk update now accepts wrapper payload `{ "settings": [...] }` (legacy array payload still supported).
+
+---
+
 ## [0.6.0] - 2026-03-21
 
 ### Added

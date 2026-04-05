@@ -11,6 +11,12 @@ type PayrollSettingResponse struct {
 	UpdatedAt  string  `json:"updated_at"`
 }
 
+type PayrollSettingDeleteResponse struct {
+	Total        int `json:"total"`
+	DeletedCount int `json:"deleted_count"`
+	SkippedCount int `json:"skipped_count"`
+}
+
 func ToPayrollSettingResponse(payrollSetting model.PayrollSetting) PayrollSettingResponse {
 	return PayrollSettingResponse{
 		ID:         payrollSetting.ID,
@@ -28,4 +34,12 @@ func ToPayrollSettingListResponse(payrollSettings []model.PayrollSetting) []Payr
 		response = append(response, ToPayrollSettingResponse(payrollSetting))
 	}
 	return response
+}
+
+func ToPayrollSettingDeleteResponse(total, deletedCount, skippedCount int) PayrollSettingDeleteResponse {
+	return PayrollSettingDeleteResponse{
+		Total:        total,
+		DeletedCount: deletedCount,
+		SkippedCount: skippedCount,
+	}
 }

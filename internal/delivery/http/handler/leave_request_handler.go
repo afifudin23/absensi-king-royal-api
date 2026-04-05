@@ -99,6 +99,24 @@ func (h *LeaveRequestHandler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, common.SuccessResponse(common.ToSuccessResponse(data.ID)))
 }
 
+func (h *LeaveRequestHandler) UpdateStatus(c *gin.Context) {
+	var payload request.LeaveRequestUpdateStatusRequest
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.ErrorHandler(c, common.ValidationError(common.ErrorValidation(err)))
+		return
+	}
+
+	leaveID := c.Param("leave_id")
+	data, err := h.service.UpdateStatus(c.Request.Context(), leaveID, payload)
+	if err != nil {
+		common.ErrorHandler(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(common.ToSuccessResponse(data.ID)))
+}
+
 func (h *LeaveRequestHandler) Delete(c *gin.Context) {
 	leaveID := c.Param("leave_id")
 	err := h.service.Delete(c.Request.Context(), leaveID)

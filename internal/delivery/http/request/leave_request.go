@@ -37,3 +37,8 @@ func (rq *LeaveRequestUpdateRequest) Normalize() {
 		rq.Type = &normalized
 	}
 }
+
+
+type LeaveRequestUpdateStatusRequest struct {
+	Status model.LeaveRequestStatus `json:"status" binding:"required,oneof=approved rejected"`
+}

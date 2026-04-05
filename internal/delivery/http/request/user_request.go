@@ -13,27 +13,26 @@ type UserCreateRequest struct {
 	Password string         `json:"password" binding:"required,min=8,max=100"`
 	Role     model.UserRole `json:"role" binding:"required,oneof=admin user"`
 
-	EmployeeCode      *string           `json:"employee_code,omitempty" binding:"omitempty,max=100"`
-	EmploymentStatus  *string           `json:"employment_status,omitempty" binding:"omitempty,max=100"`
-	BirthPlace        *string           `json:"birth_place,omitempty" binding:"omitempty,max=255"`
-	BirthDate         *time.Time        `json:"birth_date,omitempty" binding:"omitempty"`
-	Gender            *model.UserGender `json:"gender,omitempty" binding:"omitempty,oneof=male female other"`
-	Address           *string           `json:"address,omitempty" binding:"omitempty,max=500"`
-	PhoneNumber       *string           `json:"phone_number,omitempty" binding:"omitempty,max=50"`
-	Position          *string           `json:"position,omitempty" binding:"omitempty,max=100"`
-	Department        *string           `json:"department,omitempty" binding:"omitempty,max=100"`
-	BankAccountNumber *string           `json:"bank_account_number,omitempty" binding:"omitempty,max=100"`
-	BasicSalary       *float64          `json:"basic_salary,omitempty" binding:"omitempty"`
-	PositionAllowance *float64          `json:"position_allowance,omitempty" binding:"omitempty"`
-	OtherAllowance    *float64          `json:"other_allowance,omitempty" binding:"omitempty"`
-	ProfilePictureID  *string           `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
+	EmployeeCode      *string                     `json:"employee_code,omitempty" binding:"omitempty,max=100"`
+	EmploymentStatus  *model.UserEmploymentStatus `json:"employment_status,omitempty" binding:"omitempty,max=100"`
+	BirthPlace        *string                     `json:"birth_place,omitempty" binding:"omitempty,max=255"`
+	BirthDate         *time.Time                  `json:"birth_date,omitempty" binding:"omitempty"`
+	Gender            *model.UserGender           `json:"gender,omitempty" binding:"omitempty,oneof=male female other"`
+	Address           *string                     `json:"address,omitempty" binding:"omitempty,max=500"`
+	PhoneNumber       *string                     `json:"phone_number,omitempty" binding:"omitempty,max=50"`
+	Position          *string                     `json:"position,omitempty" binding:"omitempty,max=100"`
+	Department        *string                     `json:"department,omitempty" binding:"omitempty,max=100"`
+	BankAccountNumber *string                     `json:"bank_account_number,omitempty" binding:"omitempty,max=100"`
+	BasicSalary       *float64                    `json:"basic_salary,omitempty" binding:"omitempty"`
+	PositionAllowance *float64                    `json:"position_allowance,omitempty" binding:"omitempty"`
+	OtherAllowance    *float64                    `json:"other_allowance,omitempty" binding:"omitempty"`
+	ProfilePictureID  *string                     `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
 }
 
 func (r *UserCreateRequest) Normalize() {
 	r.FullName = strings.TrimSpace(r.FullName)
 	r.Email = strings.ToLower(strings.TrimSpace(r.Email))
 	normalizeOptionalString(&r.EmployeeCode, false)
-	normalizeOptionalString(&r.EmploymentStatus, true)
 	normalizeOptionalString(&r.BirthPlace, false)
 	normalizeOptionalString(&r.Address, false)
 	normalizeOptionalString(&r.PhoneNumber, false)
@@ -47,26 +46,25 @@ type UserUpdateRequest struct {
 	FullName *string         `json:"full_name" binding:"omitempty,min=3,max=255"`
 	Role     *model.UserRole `json:"role" binding:"omitempty,oneof=admin user"`
 
-	EmployeeCode      *string           `json:"employee_code,omitempty" binding:"omitempty,max=100"`
-	EmploymentStatus  *string           `json:"employment_status,omitempty" binding:"omitempty,max=100"`
-	BirthPlace        *string           `json:"birth_place,omitempty" binding:"omitempty,max=255"`
-	BirthDate         *time.Time        `json:"birth_date,omitempty" binding:"omitempty"`
-	Gender            *model.UserGender `json:"gender,omitempty" binding:"omitempty,oneof=male female other"`
-	Address           *string           `json:"address,omitempty" binding:"omitempty,max=500"`
-	PhoneNumber       *string           `json:"phone_number,omitempty" binding:"omitempty,max=50"`
-	Position          *string           `json:"position,omitempty" binding:"omitempty,max=100"`
-	Department        *string           `json:"department,omitempty" binding:"omitempty,max=100"`
-	BankAccountNumber *string           `json:"bank_account_number,omitempty" binding:"omitempty,max=100"`
-	BasicSalary       *float64          `json:"basic_salary,omitempty" binding:"omitempty"`
-	PositionAllowance *float64          `json:"position_allowance,omitempty" binding:"omitempty"`
-	OtherAllowance    *float64          `json:"other_allowance,omitempty" binding:"omitempty"`
-	ProfilePictureID  *string           `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
+	EmployeeCode      *string                     `json:"employee_code,omitempty" binding:"omitempty,max=100"`
+	EmploymentStatus  *model.UserEmploymentStatus `json:"employment_status,omitempty" binding:"omitempty,max=100"`
+	BirthPlace        *string                     `json:"birth_place,omitempty" binding:"omitempty,max=255"`
+	BirthDate         *time.Time                  `json:"birth_date,omitempty" binding:"omitempty"`
+	Gender            *model.UserGender           `json:"gender,omitempty" binding:"omitempty,oneof=male female other"`
+	Address           *string                     `json:"address,omitempty" binding:"omitempty,max=500"`
+	PhoneNumber       *string                     `json:"phone_number,omitempty" binding:"omitempty,max=50"`
+	Position          *string                     `json:"position,omitempty" binding:"omitempty,max=100"`
+	Department        *string                     `json:"department,omitempty" binding:"omitempty,max=100"`
+	BankAccountNumber *string                     `json:"bank_account_number,omitempty" binding:"omitempty,max=100"`
+	BasicSalary       *float64                    `json:"basic_salary,omitempty" binding:"omitempty"`
+	PositionAllowance *float64                    `json:"position_allowance,omitempty" binding:"omitempty"`
+	OtherAllowance    *float64                    `json:"other_allowance,omitempty" binding:"omitempty"`
+	ProfilePictureID  *string                     `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
 }
 
 func (r *UserUpdateRequest) Normalize() {
 	normalizeOptionalString(&r.FullName, false)
 	normalizeOptionalString(&r.EmployeeCode, false)
-	normalizeOptionalString(&r.EmploymentStatus, true)
 	normalizeOptionalString(&r.BirthPlace, false)
 	normalizeOptionalString(&r.Address, false)
 	normalizeOptionalString(&r.PhoneNumber, false)
@@ -82,19 +80,19 @@ type UserUpdateProfileRequest struct {
 	Password *string         `json:"password" binding:"omitempty,min=8,max=100"`
 	Role     *model.UserRole `json:"role" binding:"omitempty,oneof=admin user"`
 
-	EmployeeCode      *string           `json:"employee_code,omitempty" binding:"omitempty,max=100"`
-	EmploymentStatus  *string           `json:"employment_status,omitempty" binding:"omitempty,max=100"`
-	BirthPlace        *string           `json:"birth_place,omitempty" binding:"omitempty,max=255"`
-	BirthDate         *time.Time        `json:"birth_date,omitempty" binding:"omitempty"`
-	Gender            *model.UserGender `json:"gender,omitempty" binding:"omitempty,oneof=male female other"`
-	Address           *string           `json:"address,omitempty" binding:"omitempty,max=500"`
-	PhoneNumber       *string           `json:"phone_number,omitempty" binding:"omitempty,max=50"`
-	Position          *string           `json:"position,omitempty" binding:"omitempty,max=100"`
-	Department        *string           `json:"department,omitempty" binding:"omitempty,max=100"`
-	BankAccountNumber *string           `json:"bank_account_number,omitempty" binding:"omitempty,max=100"`
-	PositionAllowance *float64          `json:"position_allowance,omitempty" binding:"omitempty"`
-	OtherAllowance    *float64          `json:"other_allowance,omitempty" binding:"omitempty"`
-	ProfilePictureID  *string           `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
+	EmployeeCode      *string                     `json:"employee_code,omitempty" binding:"omitempty,max=100"`
+	EmploymentStatus  *model.UserEmploymentStatus `json:"employment_status,omitempty" binding:"omitempty,max=100"`
+	BirthPlace        *string                     `json:"birth_place,omitempty" binding:"omitempty,max=255"`
+	BirthDate         *time.Time                  `json:"birth_date,omitempty" binding:"omitempty"`
+	Gender            *model.UserGender           `json:"gender,omitempty" binding:"omitempty,oneof=male female other"`
+	Address           *string                     `json:"address,omitempty" binding:"omitempty,max=500"`
+	PhoneNumber       *string                     `json:"phone_number,omitempty" binding:"omitempty,max=50"`
+	Position          *string                     `json:"position,omitempty" binding:"omitempty,max=100"`
+	Department        *string                     `json:"department,omitempty" binding:"omitempty,max=100"`
+	BankAccountNumber *string                     `json:"bank_account_number,omitempty" binding:"omitempty,max=100"`
+	PositionAllowance *float64                    `json:"position_allowance,omitempty" binding:"omitempty"`
+	OtherAllowance    *float64                    `json:"other_allowance,omitempty" binding:"omitempty"`
+	ProfilePictureID  *string                     `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
 }
 
 func (r *UserUpdateProfileRequest) Normalize() {
@@ -102,7 +100,6 @@ func (r *UserUpdateProfileRequest) Normalize() {
 	normalizeOptionalString(&r.Email, true)
 	normalizeOptionalString(&r.Password, false)
 	normalizeOptionalString(&r.EmployeeCode, false)
-	normalizeOptionalString(&r.EmploymentStatus, true)
 	normalizeOptionalString(&r.BirthPlace, false)
 	normalizeOptionalString(&r.Address, false)
 	normalizeOptionalString(&r.PhoneNumber, false)

@@ -15,6 +15,7 @@ func main() {
 	log.Println("sedding start...")
 
 	seeder.SeedUsers()
+	seeder.SeedPayrollSettings()
 
 	log.Println("sedding finish...")
 }

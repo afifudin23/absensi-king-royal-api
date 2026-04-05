@@ -13,7 +13,7 @@ type PayrollSettingRepository interface {
 	Create(ctx context.Context, payrollSetting *model.PayrollSetting) error
 	Update(ctx context.Context, payrollSetting *model.PayrollSetting) error
 	UpdateBulkByConfigKey(ctx context.Context, payrollSettings []model.PayrollSetting) ([]model.PayrollSetting, error)
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, ids []string) (int, error)
 }
 
 type payrollSettingRepository struct {
@@ -26,7 +26,10 @@ func NewPayrollSettingRepository(db *gorm.DB) PayrollSettingRepository {
 
 func (r *payrollSettingRepository) GetAll(ctx context.Context) ([]model.PayrollSetting, error) {
 	var payrollSettings []model.PayrollSetting
-	err := r.db.WithContext(ctx).Find(&payrollSettings).Error
+	err := r.db.WithContext(ctx).
+		Order("updated_at DESC").
+		Find(&payrollSettings).
+		Error
 	return payrollSettings, err
 }
 
@@ -79,13 +82,10 @@ func (r *payrollSettingRepository) UpdateBulkByConfigKey(ctx context.Context, pa
 	return result, nil
 }
 
-func (r *payrollSettingRepository) Delete(ctx context.Context, id string) error {
-	result := r.db.WithContext(ctx).Delete(&model.PayrollSetting{}, "id = ?", id)
+func (r *payrollSettingRepository) Delete(ctx context.Context, ids []string) (int, error) {
+	result := r.db.WithContext(ctx).Delete(&model.PayrollSetting{}, "id IN ?", ids)
 	if result.Error != nil {
-		return result.Error
+		return 0, result.Error
 	}
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
-	return nil
+	return int(result.RowsAffected), nil
 }
