@@ -9,7 +9,7 @@ import (
 )
 
 type PayrollSettingRepository interface {
-	GetAll(ctx context.Context) ([]model.PayrollSetting, error)
+	GetAll(ctx context.Context, onlyActive bool) ([]model.PayrollSetting, error)
 	Create(ctx context.Context, payrollSetting *model.PayrollSetting) error
 	Update(ctx context.Context, payrollSetting *model.PayrollSetting) error
 	UpdateBulkByConfigKey(ctx context.Context, payrollSettings []model.PayrollSetting) ([]model.PayrollSetting, error)
@@ -24,12 +24,13 @@ func NewPayrollSettingRepository(db *gorm.DB) PayrollSettingRepository {
 	return &payrollSettingRepository{db: db}
 }
 
-func (r *payrollSettingRepository) GetAll(ctx context.Context) ([]model.PayrollSetting, error) {
+func (r *payrollSettingRepository) GetAll(ctx context.Context, onlyActive bool) ([]model.PayrollSetting, error) {
 	var payrollSettings []model.PayrollSetting
-	err := r.db.WithContext(ctx).
-		Order("updated_at DESC").
-		Find(&payrollSettings).
-		Error
+	query := r.db.WithContext(ctx).Order("updated_at DESC")
+	if onlyActive {
+		query = query.Where("is_active = ?", true)
+	}
+	err := query.Find(&payrollSettings).Error
 	return payrollSettings, err
 }
 

@@ -31,7 +31,7 @@ func NewUserService(userRepo repository.UserRepository, fileRepo repository.File
 }
 
 func (s *userService) GetAll(ctx context.Context) ([]model.User, error) {
-	return s.userRepo.GetAll(ctx)
+	return s.userRepo.GetAll(ctx, false)
 }
 
 func (s *userService) Create(ctx context.Context, payload request.UserCreateRequest) (*model.User, error) {
@@ -99,7 +99,7 @@ func (s *userService) Create(ctx context.Context, payload request.UserCreateRequ
 }
 
 func (s *userService) GetByID(ctx context.Context, userID string) (*model.User, error) {
-	user, err := s.userRepo.GetByID(ctx, userID)
+	user, err := s.userRepo.GetByID(ctx, userID, false)
 	if err != nil {
 		if isNotFoundError(err) {
 			return nil, ErrUserNotFound
@@ -110,7 +110,7 @@ func (s *userService) GetByID(ctx context.Context, userID string) (*model.User, 
 }
 
 func (s *userService) Update(ctx context.Context, userID string, payload request.UserUpdateRequest) (*model.User, error) {
-	user, err := s.userRepo.GetByID(ctx, userID)
+	user, err := s.userRepo.GetByID(ctx, userID, false)
 	if err != nil {
 		if isNotFoundError(err) {
 			return nil, ErrUserNotFound
@@ -157,7 +157,7 @@ func (s *userService) Update(ctx context.Context, userID string, payload request
 }
 
 func (s *userService) UpdateProfile(ctx context.Context, userID string, payload request.UserUpdateProfileRequest) (*model.User, error) {
-	user, err := s.userRepo.GetByID(ctx, userID)
+	user, err := s.userRepo.GetByID(ctx, userID, false)
 	if err != nil {
 		if isNotFoundError(err) {
 			return nil, ErrUserNotFound
@@ -213,7 +213,7 @@ func (s *userService) UpdateProfile(ctx context.Context, userID string, payload 
 }
 
 func (s *userService) Delete(ctx context.Context, userID string) error {
-	_, err := s.userRepo.GetByID(ctx, userID)
+	_, err := s.userRepo.GetByID(ctx, userID, false)
 	if err != nil {
 		if isNotFoundError(err) {
 			return ErrUserNotFound
@@ -238,7 +238,7 @@ func applyUserUpdateRequest(existing *model.User, profile *model.UserProfile, pa
 		existing.Role = model.UserRole(*payload.Role)
 	}
 
-	applyUserProfileUpdates(profile,
+	applyUserUpdate(profile,
 		payload.EmployeeCode,
 		payload.EmploymentStatus,
 		payload.BirthPlace,
@@ -266,7 +266,7 @@ func applyUserUpdateProfileRequest(existing *model.User, profile *model.UserProf
 		existing.Role = *payload.Role
 	}
 
-	applyUserProfileUpdates(profile,
+	applyUserUpdate(profile,
 		payload.EmployeeCode,
 		payload.EmploymentStatus,
 		payload.BirthPlace,
@@ -278,12 +278,12 @@ func applyUserUpdateProfileRequest(existing *model.User, profile *model.UserProf
 		payload.Department,
 		payload.BankAccountNumber,
 		nil,
-		payload.PositionAllowance,
-		payload.OtherAllowance,
+		nil,
+		nil,
 	)
 }
 
-func applyUserProfileUpdates(
+func applyUserUpdate(
 	profile *model.UserProfile,
 	employeeCode *string,
 	employmentStatus *model.UserEmploymentStatus,

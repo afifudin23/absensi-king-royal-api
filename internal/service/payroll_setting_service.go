@@ -27,7 +27,7 @@ func NewPayrollSettingService(payrollSettingRepo repository.PayrollSettingReposi
 }
 
 func (s *payrollSettingService) GetAll(ctx context.Context) ([]model.PayrollSetting, error) {
-	return s.payrollSettingRepo.GetAll(ctx)
+	return s.payrollSettingRepo.GetAll(ctx, false)
 }
 
 func (s *payrollSettingService) Create(ctx context.Context, payload request.PayrollSettingRequest) (*model.PayrollSetting, error) {

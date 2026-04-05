@@ -4,6 +4,40 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.0] - 2026-04-05
+
+### Added
+
+- Payroll module:
+  - `GET /api/v1/payrolls`
+  - `GET /api/v1/payrolls/:payroll_id`
+  - `POST /api/v1/payrolls/generate/:employee_id`
+  - `POST /api/v1/payrolls/generate`
+  - `PATCH /api/v1/payrolls/:payroll_id`
+- Payroll migration:
+  - `migrations/20260405063510_create_payrolls_table.up.sql`
+  - `migrations/20260405063510_create_payrolls_table.down.sql`
+
+### Changed
+
+- Payroll generation is idempotent per-month (WIB): repeated generate updates the existing row instead of inserting duplicates.
+- Payroll generate-all reduces DB queries by fetching existing payrolls for the month in a single query.
+
+### Fixed
+
+- Leave request status can only transition from `pending` → (`approved` | `rejected`) and returns `400` if already finalized.
+- Payroll generate no longer panics when user salary/allowances are missing; returns a `400` instead.
+- Payroll generate now inserts valid default JSON for `additional_data` (prevents MySQL JSON constraint error).
+- User repository now preloads `Profile` correctly when `loadProfile=true`.
+
+### Migration Required
+
+- Yes.
+- Run:
+  - `make migrate-up`
+
+---
+
 ## [0.6.1] - 2026-04-05
 
 ### Added

@@ -11,8 +11,8 @@ type UserData struct {
 	FullName  string         `json:"full_name"`
 	Email     string         `json:"email"`
 	Role      model.UserRole `json:"role"`
-	CreatedAt string         `json:"created_at"`
-	UpdatedAt string         `json:"updated_at"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
 }
 
 type LoginResponse struct {
@@ -31,8 +31,8 @@ func ToUserData(user model.User) UserData {
 		FullName:  user.FullName,
 		Email:     user.Email,
 		Role:      user.Role,
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}
 }
 

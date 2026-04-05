@@ -33,12 +33,12 @@ type mockUserRepo struct {
 	lastDeleted        string
 }
 
-func (m *mockUserRepo) GetAll(ctx context.Context) ([]model.User, error) {
+func (m *mockUserRepo) GetAll(ctx context.Context, loadProfile bool) ([]model.User, error) {
 	m.getAllCalls++
 	return m.getAllFn(ctx)
 }
 
-func (m *mockUserRepo) GetByID(ctx context.Context, id string) (*model.User, error) {
+func (m *mockUserRepo) GetByID(ctx context.Context, id string, loadProfile bool) (*model.User, error) {
 	m.getByIDCalls++
 	return m.getByIDFn(ctx, id)
 }

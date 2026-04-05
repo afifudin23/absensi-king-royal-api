@@ -11,6 +11,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/manifoldco/promptui v0.9.0
+	gorm.io/datatypes v1.2.7
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.30.1
 )

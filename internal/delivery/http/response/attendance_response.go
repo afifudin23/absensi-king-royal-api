@@ -16,8 +16,8 @@ type AttendanceResponse struct {
 	CheckInFileURL  *string `json:"check_in_file_url"`
 	CheckOutFileID  *string `json:"check_out_file_id"`
 	CheckOutFileURL *string `json:"check_out_file_url"`
-	CreatedAt       string  `json:"created_at"`
-	UpdatedAt       string  `json:"updated_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 func ToAttendanceResponse(attendance model.Attendance) AttendanceResponse {
@@ -31,8 +31,8 @@ func ToAttendanceResponse(attendance model.Attendance) AttendanceResponse {
 		CheckInFileURL:  attendance.CheckInFileURL,
 		CheckOutFileID:  attendance.CheckOutFileID,
 		CheckOutFileURL: attendance.CheckOutFileURL,
-		CreatedAt:       attendance.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:       attendance.UpdatedAt.Format(time.RFC3339),
+		CreatedAt:       attendance.CreatedAt,
+		UpdatedAt:       attendance.UpdatedAt,
 	}
 }
 

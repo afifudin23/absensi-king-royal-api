@@ -90,8 +90,6 @@ type UserUpdateProfileRequest struct {
 	Position          *string                     `json:"position,omitempty" binding:"omitempty,max=100"`
 	Department        *string                     `json:"department,omitempty" binding:"omitempty,max=100"`
 	BankAccountNumber *string                     `json:"bank_account_number,omitempty" binding:"omitempty,max=100"`
-	PositionAllowance *float64                    `json:"position_allowance,omitempty" binding:"omitempty"`
-	OtherAllowance    *float64                    `json:"other_allowance,omitempty" binding:"omitempty"`
 	ProfilePictureID  *string                     `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
 }
 

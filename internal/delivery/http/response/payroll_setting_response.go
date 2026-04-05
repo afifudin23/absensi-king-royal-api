@@ -1,14 +1,18 @@
 package response
 
-import "github.com/afifudin23/absensi-king-royal-api/internal/model"
+import (
+	"time"
+
+	"github.com/afifudin23/absensi-king-royal-api/internal/model"
+)
 
 type PayrollSettingResponse struct {
-	ID         string  `json:"id"`
-	ConfigName string  `json:"config_name"`
-	ConfigKey  string  `json:"config_key"`
-	Value      float64 `json:"value"`
-	CreatedAt  string  `json:"created_at"`
-	UpdatedAt  string  `json:"updated_at"`
+	ID         string    `json:"id"`
+	ConfigName string    `json:"config_name"`
+	ConfigKey  string    `json:"config_key"`
+	Value      float64   `json:"value"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type PayrollSettingDeleteResponse struct {
@@ -23,8 +27,8 @@ func ToPayrollSettingResponse(payrollSetting model.PayrollSetting) PayrollSettin
 		ConfigName: payrollSetting.ConfigName,
 		ConfigKey:  payrollSetting.ConfigKey,
 		Value:      payrollSetting.Value,
-		CreatedAt:  payrollSetting.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:  payrollSetting.UpdatedAt.Format("2006-01-02 15:04:05"),
+		CreatedAt:  payrollSetting.CreatedAt,
+		UpdatedAt:  payrollSetting.UpdatedAt,
 	}
 }
 

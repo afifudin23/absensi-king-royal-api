@@ -10,8 +10,8 @@ import (
 )
 
 type UserRepository interface {
-	GetAll(ctx context.Context) ([]model.User, error)
-	GetByID(ctx context.Context, id string) (*model.User, error)
+	GetAll(ctx context.Context, loadProfile bool) ([]model.User, error)
+	GetByID(ctx context.Context, id string, loadProfile bool) (*model.User, error)
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 	Create(ctx context.Context, user *model.User, profile *model.UserProfile) error
 	Update(ctx context.Context, user *model.User, profile *model.UserProfile) error
@@ -26,20 +26,24 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db: db}
 }
 
-func (r *userRepository) GetAll(ctx context.Context) ([]model.User, error) {
+func (r *userRepository) GetAll(ctx context.Context, loadProfile bool) ([]model.User, error) {
 	var users []model.User
-	err := r.db.WithContext(ctx).
-		Preload("Profile").
-		Find(&users).Error
+	query := r.db.WithContext(ctx)
+	if loadProfile {
+		query = query.Preload("Profile")
+	}
+	err := query.Find(&users).Error
 	return users, err
 }
 
-func (r *userRepository) GetByID(ctx context.Context, id string) (*model.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, id string, loadProfile bool) (*model.User, error) {
 	var user model.User
-	err := r.db.WithContext(ctx).
-		Preload("Profile").
-		Where("id = ?", id).
-		Take(&user).Error
+
+	query := r.db.WithContext(ctx).Where("id = ?", id)
+	if loadProfile {
+		query = query.Preload("Profile")
+	}
+	err := query.Take(&user).Error
 	if err != nil {
 		return nil, err
 	}

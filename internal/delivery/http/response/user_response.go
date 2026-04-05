@@ -28,8 +28,8 @@ type UserResponse struct {
 	ProfilePictureID  *string                     `json:"profile_picture_id"`
 	ProfilePictureURL *string                     `json:"profile_picture_url"`
 	JoinedAt          *string                     `json:"joined_at"`
-	CreatedAt         string                      `json:"created_at"`
-	UpdatedAt         string                      `json:"updated_at"`
+	CreatedAt         time.Time                   `json:"created_at"`
+	UpdatedAt         time.Time                   `json:"updated_at"`
 }
 
 func ToUserResponse(user model.User) UserResponse {
@@ -94,8 +94,8 @@ func ToUserResponse(user model.User) UserResponse {
 		ProfilePictureID:  profilePictureID,
 		ProfilePictureURL: profilePictureURL,
 		JoinedAt:          joinedAt,
-		CreatedAt:         user.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:         user.UpdatedAt.Format(time.RFC3339),
+		CreatedAt:         user.CreatedAt,
+		UpdatedAt:         user.UpdatedAt,
 	}
 }
 

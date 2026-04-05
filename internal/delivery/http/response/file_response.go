@@ -1,6 +1,8 @@
 package response
 
 import (
+	"time"
+
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 )
 
@@ -13,8 +15,8 @@ type FileResponse struct {
 	MimeType   string         `json:"mime_type"`
 	UploadedBy string         `json:"uploaded_by"`
 	Type       model.FileType `json:"type"`
-	CreatedAt  string         `json:"created_at"`
-	UpdatedAt  string         `json:"updated_at"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 func ToFileResponse(file model.File) FileResponse {
@@ -27,7 +29,7 @@ func ToFileResponse(file model.File) FileResponse {
 		MimeType:   file.MimeType,
 		UploadedBy: file.UploadedBy,
 		Type:       file.Type,
-		CreatedAt:  file.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:  file.UpdatedAt.Format("2006-01-02 15:04:05"),
+		CreatedAt:  file.CreatedAt,
+		UpdatedAt:  file.UpdatedAt,
 	}
 }
