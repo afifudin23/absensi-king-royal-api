@@ -1,16 +1,18 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"time"
 
-	"github.com/afifudin23/absensi-king-royal-api/internal/config"
+	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
 )
@@ -21,11 +23,12 @@ type FileService interface {
 }
 
 type fileService struct {
-	fileRepo repository.FileRepository
+	fileRepo      repository.FileRepository
+	serverBaseURL string
 }
 
-func NewFileService(fileRepo repository.FileRepository) FileService {
-	return &fileService{fileRepo: fileRepo}
+func NewFileService(fileRepo repository.FileRepository, serverBaseURL string) FileService {
+	return &fileService{fileRepo: fileRepo, serverBaseURL: serverBaseURL}
 }
 
 func folderNameForFileType(fileType model.FileType) string {
@@ -39,6 +42,11 @@ func folderNameForFileType(fileType model.FileType) string {
 	}
 }
 
+var allowedImageContentTypes = map[string]string{
+	"image/jpeg": ".jpg",
+	"image/png":  ".png",
+}
+
 func (s *fileService) Upload(ctx context.Context, fileHeader *multipart.FileHeader, fileType model.FileType, userID string) (*model.File, error) {
 	file, err := fileHeader.Open()
 	if err != nil {
@@ -46,7 +54,16 @@ func (s *fileService) Upload(ctx context.Context, fileHeader *multipart.FileHead
 	}
 	defer file.Close()
 
-	ext := filepath.Ext(fileHeader.Filename)
+	sniffBuf := make([]byte, 512)
+	n, _ := io.ReadFull(file, sniffBuf)
+	sniffBuf = sniffBuf[:n]
+	contentType := http.DetectContentType(sniffBuf)
+
+	ext, ok := allowedImageContentTypes[contentType]
+	if !ok {
+		return nil, common.BadRequestError("Only image files are allowed")
+	}
+
 	newFileName := fmt.Sprintf("%s%s", time.Now().Format("20060102_150405"), ext)
 
 	dateFolder := time.Now().Format("2006-01-02")
@@ -64,15 +81,19 @@ func (s *fileService) Upload(ctx context.Context, fileHeader *multipart.FileHead
 	}
 	defer dst.Close()
 
-	if _, err := io.Copy(dst, file); err != nil {
+	if _, err := io.Copy(dst, io.MultiReader(bytes.NewReader(sniffBuf), file)); err != nil {
 		return nil, err
 	}
 
-	fileURL := fmt.Sprintf("%s/%s/%s", config.GetEnv().ServerBaseURL, "files", path.Join(folderName, dateFolder, newFileName))
+	if s.serverBaseURL == "" {
+		return nil, common.InternalServerError()
+	}
+
+	fileURL := fmt.Sprintf("%s/%s/%s", s.serverBaseURL, "files", path.Join(folderName, dateFolder, newFileName))
 
 	image := &model.File{
 		FileName:   newFileName,
-		MimeType:   fileHeader.Header.Get("Content-Type"),
+		MimeType:   contentType,
 		FileSize:   fileHeader.Size,
 		FilePath:   filePath,
 		FileURL:    fileURL,

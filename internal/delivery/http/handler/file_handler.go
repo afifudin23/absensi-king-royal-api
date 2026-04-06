@@ -44,7 +44,7 @@ func (h *FileHandler) Upload(c *gin.Context) {
 
 	file, err := h.service.Upload(c.Request.Context(), fileHeader, model.FileType(fileType), userID)
 	if err != nil {
-		common.ErrorHandler(c, common.InternalServerError())
+		common.ErrorHandler(c, err)
 		return
 	}
 

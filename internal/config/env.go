@@ -18,7 +18,9 @@ type EnvConfig struct {
 }
 
 func LoadEnv() (*EnvConfig, error) {
-	_ = godotenv.Load()
+	// Prioritize values from .env over existing process environment variables.
+	// If .env doesn't exist, fall back to the current process environment.
+	_ = godotenv.Overload()
 
 	appName := strings.TrimSpace(os.Getenv("APP_NAME"))
 	if appName == "" {

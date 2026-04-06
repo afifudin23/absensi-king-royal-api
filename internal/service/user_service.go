@@ -19,6 +19,7 @@ type UserService interface {
 	Update(ctx context.Context, userID string, payload request.UserUpdateRequest) (*model.User, error)
 	UpdateProfile(ctx context.Context, userID string, payload request.UserUpdateProfileRequest) (*model.User, error)
 	Delete(ctx context.Context, userID string) error
+	// SendEmail()
 }
 
 type userService struct {

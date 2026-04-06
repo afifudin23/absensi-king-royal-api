@@ -100,6 +100,15 @@ func TestUserService_Create_HashesPasswordAndPersists(t *testing.T) {
 	if repo.lastCreatedUser == nil {
 		t.Fatalf("repo.lastCreatedUser is nil")
 	}
+	if repo.lastCreatedUser.FullName != in.FullName {
+		t.Fatalf("full name = %q, want %q", repo.lastCreatedUser.FullName, in.FullName)
+	}
+	if repo.lastCreatedUser.Email != in.Email {
+		t.Fatalf("email = %q, want %q", repo.lastCreatedUser.Email, in.Email)
+	}
+	if repo.lastCreatedUser.Role != in.Role {
+		t.Fatalf("role = %v, want %v", repo.lastCreatedUser.Role, in.Role)
+	}
 	if repo.lastCreatedUser.Password == "" || repo.lastCreatedUser.Password == in.Password {
 		t.Fatalf("password was not hashed")
 	}
@@ -108,6 +117,9 @@ func TestUserService_Create_HashesPasswordAndPersists(t *testing.T) {
 	}
 	if repo.lastCreatedProfile == nil {
 		t.Fatalf("repo.lastCreatedProfile is nil")
+	}
+	if repo.lastCreatedProfile.UserID != repo.lastCreatedUser.ID {
+		t.Fatalf("profile.UserID = %q, want %q", repo.lastCreatedProfile.UserID, repo.lastCreatedUser.ID)
 	}
 }
 
