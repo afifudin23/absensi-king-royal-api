@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -12,6 +15,7 @@ import (
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
+	"github.com/jung-kurt/gofpdf"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -34,6 +38,78 @@ func NewPayrollService(payrollRepo repository.PayrollRepository, payrollSettingR
 	return &payrollService{payrollRepo: payrollRepo, payrollSettingRepo: payrollSettingRepo, userRepo: userRepo}
 }
 
+func (s *payrollService) generatePayrollPDF(
+	ctx context.Context,
+	payroll *model.Payroll,
+	employee *model.User,
+) (*string, error) {
+	_ = ctx
+
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.SetMargins(15, 15, 15)
+	pdf.AddPage()
+
+	// Title
+	pdf.SetFont("Arial", "B", 16)
+	pdf.Cell(0, 10, "Payroll Slip")
+	pdf.Ln(12)
+
+	// Employee info
+	pdf.SetFont("Arial", "", 12)
+	pdf.Cell(50, 8, "Employee Name")
+	pdf.Cell(5, 8, ":")
+	pdf.Cell(0, 8, employee.FullName)
+	pdf.Ln(8)
+
+	pdf.Cell(50, 8, "Employee ID")
+	pdf.Cell(5, 8, ":")
+	pdf.Cell(0, 8, employee.ID)
+	pdf.Ln(8)
+
+	pdf.Cell(50, 8, "Payroll Date")
+	pdf.Cell(5, 8, ":")
+	pdf.Cell(0, 8, payroll.CreatedAt.Format("2006-01-02"))
+	pdf.Ln(12)
+
+	// Salary details
+	pdf.SetFont("Arial", "B", 13)
+	pdf.Cell(0, 8, "Salary Detail")
+	pdf.Ln(10)
+
+	pdf.SetFont("Arial", "", 12)
+
+	addMoneyRow := func(label string, value float64) {
+		pdf.Cell(70, 8, label)
+		pdf.Cell(10, 8, ":")
+		pdf.Cell(0, 8, fmt.Sprintf("Rp %.2f", value))
+		pdf.Ln(8)
+	}
+
+	addMoneyRow("Basic Salary", payroll.BasicSalary)
+	addMoneyRow("Position Allowance", payroll.PositionAllowance)
+	addMoneyRow("Other Allowance", payroll.OtherAllowance)
+	addMoneyRow("Overtime Rate", payroll.OvertimeRate)
+
+	pdf.Ln(4)
+	pdf.SetFont("Arial", "B", 12)
+	addMoneyRow("Net Salary", payroll.NetSalary)
+
+	// Output dir
+	dir := "storage/payroll_pdfs"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, err
+	}
+
+	filename := fmt.Sprintf("payroll_%s_%d.pdf", payroll.EmployeeID, time.Now().Unix())
+	fullPath := filepath.Join(dir, filename)
+
+	if err := pdf.OutputFileAndClose(fullPath); err != nil {
+		return nil, err
+	}
+
+	return &fullPath, nil
+}
+
 func (s *payrollService) GetAll(ctx context.Context) ([]model.Payroll, error) {
 	return s.payrollRepo.GetAll(ctx)
 }
@@ -45,11 +121,12 @@ func (s *payrollService) GetByID(ctx context.Context, id string) (*model.Payroll
 func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*model.Payroll, error) {
 	employee, err := s.userRepo.GetByID(ctx, employeeID, true)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.NotFoundError("User not found")
 		}
 		return nil, err
 	}
+	log.Print(employee)
 	if employee.Profile == nil {
 		return nil, common.BadRequestError("User profile is incomplete")
 	}
@@ -63,6 +140,7 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 	if employee.Profile.PositionAllowance != nil {
 		positionAllowance = *employee.Profile.PositionAllowance
 	}
+
 	otherAllowance := 0.0
 	if employee.Profile.OtherAllowance != nil {
 		otherAllowance = *employee.Profile.OtherAllowance
@@ -100,8 +178,7 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 		AdditionalData:    datatypes.JSON(dataBytes),
 	}
 
-	// If there's an existing payroll for this employee in the current month (WIB), update it.
-	loc, _ := time.LoadLocation("Asia/Jakarta") // WIB
+	loc, _ := time.LoadLocation("Asia/Jakarta")
 	localNow := time.Now().In(loc)
 	year, month, _ := localNow.Date()
 	startLocal := time.Date(year, month, 1, 0, 0, 0, 0, loc)
@@ -111,18 +188,37 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
+
+	var saved *model.Payroll
+
 	if err == nil && existing != nil {
 		payroll.ID = existing.ID
 		payroll.Status = existing.Status
 		payroll.SentAt = existing.SentAt
-		updated, err := s.payrollRepo.Update(ctx, payroll)
+
+		saved, err = s.payrollRepo.Update(ctx, payroll)
 		if err != nil {
 			return nil, err
 		}
-		return updated, nil
+	} else {
+		saved, err = s.payrollRepo.GenerateOne(ctx, payroll)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return s.payrollRepo.GenerateOne(ctx, payroll)
+	pdfPath, err := s.generatePayrollPDF(ctx, saved, employee)
+	if err != nil {
+		return nil, err
+	}
+
+	saved.PDFPath = pdfPath
+	saved, err = s.payrollRepo.Update(ctx, saved)
+	if err != nil {
+		return nil, err
+	}
+
+	return saved, nil
 }
 
 func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, error) {

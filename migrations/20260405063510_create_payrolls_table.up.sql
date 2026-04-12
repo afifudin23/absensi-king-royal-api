@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS payrolls (
     additional_data JSON DEFAULT ('{}'),
     net_salary DECIMAL(15,2) NULL DEFAULT 0,
     status ENUM('unsent', 'sent', 'failed') NOT NULL DEFAULT 'unsent',
+    pdf_path VARCHAR(255) NULL DEFAULT NULL,
     sent_at TIMESTAMP NULL DEFAULT NULL,
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

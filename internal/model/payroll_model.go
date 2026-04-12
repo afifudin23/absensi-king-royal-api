@@ -28,6 +28,7 @@ type Payroll struct {
 	AdditionalData      datatypes.JSON `gorm:"column:additional_data;type:json;default:'{}'"`
 	NetSalary           float64        `gorm:"column:net_salary;type:decimal(15,2);null;default:0"`
 	Status              PayrollStatus  `gorm:"column:status;type:enum('unsent','sent','failed');default:'unsent'"`
+	PDFPath             *string        `gorm:"column:pdf_path;type:text;null"`
 	SentAt              *time.Time     `gorm:"column:sent_at;type:datetime;null"`
 	CreatedAt           time.Time      `gorm:"column:created_at"`
 	UpdatedAt           time.Time      `gorm:"column:updated_at"`
