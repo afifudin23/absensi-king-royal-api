@@ -15,6 +15,13 @@ type EnvConfig struct {
 	AccessKey     string
 	Port          string
 	ServerBaseURL string
+
+	SMTPFromName   string
+	SMTPFromEmail  string
+	SMTPPassword   string
+	SMTPHost       string
+	SMTPPort       string
+	SMTPEncryption string
 }
 
 func LoadEnv() (*EnvConfig, error) {
@@ -55,12 +62,48 @@ func LoadEnv() (*EnvConfig, error) {
 		port = ":" + port
 	}
 
+	smtpFromName := strings.TrimSpace(os.Getenv("SMTP_FROM_NAME"))
+	if smtpFromName == "" {
+		smtpFromName = "King Royal System"
+	}
+
+	smtpFromEmail := strings.TrimSpace(os.Getenv("SMTP_FROM_EMAIL"))
+	if smtpFromEmail == "" {
+		return nil, fmt.Errorf("SMTP_FROM_EMAIL is required")
+	}
+
+	smtpPassword := strings.TrimSpace(os.Getenv("SMTP_PASSWORD"))
+	if smtpPassword == "" {
+		return nil, fmt.Errorf("SMTP_PASSWORD is required")
+	}
+
+	smtpHost := strings.TrimSpace(os.Getenv("SMTP_HOST"))
+	if smtpHost == "" {
+		return nil, fmt.Errorf("SMTP_HOST is required")
+	}
+
+	smtpPort := strings.TrimSpace(os.Getenv("SMTP_PORT"))
+	if smtpPort == "" {
+		return nil, fmt.Errorf("SMTP_PORT is required")
+	}
+
+	smtpEncryption := strings.TrimSpace(os.Getenv("SMTP_ENCRYPTION"))
+	if smtpEncryption == "" {
+		smtpEncryption = "starttls"
+	}
+
 	return &EnvConfig{
-		AppName:       appName,
-		Environment:   environment,
-		DatabaseURL:   databaseURL,
-		AccessKey:     accessKey,
-		Port:          port,
-		ServerBaseURL: serverBaseURL,
+		AppName:        appName,
+		Environment:    environment,
+		DatabaseURL:    databaseURL,
+		AccessKey:      accessKey,
+		Port:           port,
+		ServerBaseURL:  serverBaseURL,
+		SMTPFromName:   smtpFromName,
+		SMTPFromEmail:  smtpFromEmail,
+		SMTPPassword:   smtpPassword,
+		SMTPHost:       smtpHost,
+		SMTPPort:       smtpPort,
+		SMTPEncryption: smtpEncryption,
 	}, nil
 }

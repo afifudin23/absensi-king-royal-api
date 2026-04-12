@@ -97,9 +97,11 @@ func (r *payrollRepository) GenerateAll(ctx context.Context) ([]model.Payroll, e
 }
 
 func (r *payrollRepository) Update(ctx context.Context, payroll *model.Payroll) (*model.Payroll, error) {
+	var count int64
 	result := r.db.WithContext(ctx).
 		Model(&model.Payroll{}).
 		Where("id = ?", payroll.ID).
+		Count(&count).
 		Updates(map[string]any{
 			"employee_id":          payroll.EmployeeID,
 			"basic_salary":         payroll.BasicSalary,
@@ -113,13 +115,11 @@ func (r *payrollRepository) Update(ctx context.Context, payroll *model.Payroll) 
 			"net_salary":           payroll.NetSalary,
 			"status":               payroll.Status,
 			"sent_at":              payroll.SentAt,
+			"pdf_path":             payroll.PDFPath,
 		})
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	if result.RowsAffected == 0 {
-		return nil, gorm.ErrRecordNotFound
-	}
 
-	return r.GetByID(ctx, payroll.ID)
+	return payroll, nil
 }

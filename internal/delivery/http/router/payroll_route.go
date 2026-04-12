@@ -25,5 +25,6 @@ func registerPayroll(rg *gin.RouterGroup) {
 		payroll.POST("/generate/:employee_id", payrollHandler.GenerateOne)
 		payroll.POST("/generate-all", payrollHandler.GenerateAll)
 		payroll.PUT("/:payroll_id", payrollHandler.Update)
+		payroll.POST("/:payroll_id/send", payrollHandler.SendPayroll)
 	}
 }

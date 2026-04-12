@@ -11,10 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/afifudin23/absensi-king-royal-api/internal/config"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
+	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
 	"github.com/jung-kurt/gofpdf"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -26,6 +28,7 @@ type PayrollService interface {
 	GenerateOne(ctx context.Context, employeeID string) (*model.Payroll, error)
 	GenerateAll(ctx context.Context) ([]model.Payroll, error)
 	Update(ctx context.Context, id string, payload request.PayrollUpdateRequest) (*model.Payroll, error)
+	SendPayroll(ctx context.Context, id string) (*model.Payroll, error)
 }
 
 type payrollService struct {
@@ -39,11 +42,12 @@ func NewPayrollService(payrollRepo repository.PayrollRepository, payrollSettingR
 }
 
 func (s *payrollService) generatePayrollPDF(
-	ctx context.Context,
 	payroll *model.Payroll,
 	employee *model.User,
 ) (*string, error) {
-	_ = ctx
+	loc, _ := time.LoadLocation("Asia/Jakarta")
+	t := time.Now().In(loc)
+	dateNow := t.Format("2006-01-02 15:04:05")
 
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(15, 15, 15)
@@ -68,7 +72,7 @@ func (s *payrollService) generatePayrollPDF(
 
 	pdf.Cell(50, 8, "Payroll Date")
 	pdf.Cell(5, 8, ":")
-	pdf.Cell(0, 8, payroll.CreatedAt.Format("2006-01-02"))
+	pdf.Cell(0, 8, dateNow)
 	pdf.Ln(12)
 
 	// Salary details
@@ -95,12 +99,13 @@ func (s *payrollService) generatePayrollPDF(
 	addMoneyRow("Net Salary", payroll.NetSalary)
 
 	// Output dir
-	dir := "storage/payroll_pdfs"
+	dir := "files/payrolls"
+	yearMonth := t.Format("2006-01")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, err
 	}
 
-	filename := fmt.Sprintf("payroll_%s_%d.pdf", payroll.EmployeeID, time.Now().Unix())
+	filename := fmt.Sprintf("%s_%s.pdf", payroll.EmployeeID, yearMonth)
 	fullPath := filepath.Join(dir, filename)
 
 	if err := pdf.OutputFileAndClose(fullPath); err != nil {
@@ -115,7 +120,14 @@ func (s *payrollService) GetAll(ctx context.Context) ([]model.Payroll, error) {
 }
 
 func (s *payrollService) GetByID(ctx context.Context, id string) (*model.Payroll, error) {
-	return s.payrollRepo.GetByID(ctx, id)
+	payroll, err := s.payrollRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.NotFoundError("Payroll not found")
+		}
+		return nil, err
+	}
+	return payroll, nil
 }
 
 func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*model.Payroll, error) {
@@ -207,7 +219,7 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 		}
 	}
 
-	pdfPath, err := s.generatePayrollPDF(ctx, saved, employee)
+	pdfPath, err := s.generatePayrollPDF(saved, employee)
 	if err != nil {
 		return nil, err
 	}
@@ -257,8 +269,11 @@ func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, erro
 	endUTC := endLocal.UTC()
 
 	employeeIDs := make([]string, 0, len(employees))
-	for _, employee := range employees {
-		employeeIDs = append(employeeIDs, employee.ID)
+	employeeMap := make(map[string]*model.User, len(employees))
+
+	for i := range employees {
+		employeeIDs = append(employeeIDs, employees[i].ID)
+		employeeMap[employees[i].ID] = &employees[i]
 	}
 
 	existingPayrolls, err := s.payrollRepo.GetByEmployeeIDsAndCreatedAtRange(ctx, employeeIDs, startUTC, endUTC)
@@ -273,7 +288,8 @@ func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, erro
 	toCreate := make([]model.Payroll, 0)
 	toUpdate := make([]*model.Payroll, 0)
 
-	for _, employee := range employees {
+	for i := range employees {
+		employee := employees[i]
 		log.Print(employee.Profile)
 		if employee.Profile == nil {
 			return nil, common.BadRequestError("User profile is incomplete")
@@ -307,6 +323,9 @@ func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, erro
 			payroll.ID = existing.ID
 			payroll.Status = existing.Status
 			payroll.SentAt = existing.SentAt
+			payroll.PDFPath = existing.PDFPath
+			payroll.CreatedAt = existing.CreatedAt
+			payroll.UpdatedAt = existing.UpdatedAt
 			toUpdate = append(toUpdate, payroll)
 			continue
 		}
@@ -314,16 +333,45 @@ func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, erro
 		toCreate = append(toCreate, *payroll)
 	}
 
-	if err := s.payrollRepo.GenerateMany(ctx, toCreate); err != nil {
-		return nil, err
-	}
-	for _, payroll := range toUpdate {
-		if _, err := s.payrollRepo.Update(ctx, payroll); err != nil {
+	if len(toCreate) > 0 {
+		if err := s.payrollRepo.GenerateMany(ctx, toCreate); err != nil {
 			return nil, err
 		}
 	}
+	if len(toUpdate) > 0 {
+		for _, payroll := range toUpdate {
+			if _, err := s.payrollRepo.Update(ctx, payroll); err != nil {
+				return nil, err
+			}
+		}
+	}
 
-	return s.payrollRepo.GenerateAll(ctx)
+	savedPayrolls, err := s.payrollRepo.GetByEmployeeIDsAndCreatedAtRange(ctx, employeeIDs, startUTC, endUTC)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range savedPayrolls {
+		employee, ok := employeeMap[savedPayrolls[i].EmployeeID]
+		if !ok {
+			return nil, common.NotFoundError("User not found for payroll with employee ID: " + savedPayrolls[i].EmployeeID)
+		}
+
+		pdfPath, err := s.generatePayrollPDF(&savedPayrolls[i], employee)
+		if err != nil {
+			return nil, err
+		}
+
+		savedPayrolls[i].PDFPath = pdfPath
+		updated, err := s.payrollRepo.Update(ctx, &savedPayrolls[i])
+		if err != nil {
+			return nil, err
+		}
+
+		savedPayrolls[i] = *updated
+	}
+
+	return savedPayrolls, nil
 }
 
 func (s *payrollService) Update(ctx context.Context, id string, payload request.PayrollUpdateRequest) (*model.Payroll, error) {
@@ -381,5 +429,78 @@ func (s *payrollService) Update(ctx context.Context, id string, payload request.
 		}
 		return nil, err
 	}
+	return updated, nil
+}
+
+func (s *payrollService) SendPayroll(ctx context.Context, id string) (*model.Payroll, error) {
+	payroll, err := s.payrollRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.NotFoundError("Payroll not found")
+		}
+		return nil, err
+	}
+
+	employee, err := s.userRepo.GetByID(ctx, payroll.EmployeeID, true)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.NotFoundError("User not found")
+		}
+		return nil, err
+	}
+
+	if employee.Profile == nil {
+		return nil, common.BadRequestError("User profile is incomplete")
+	}
+
+	if employee.Email == "" {
+		return nil, common.BadRequestError("User email is empty")
+	}
+
+	if payroll.PDFPath == nil || *payroll.PDFPath == "" {
+		pdfPath, err := s.generatePayrollPDF(payroll, employee)
+		if err != nil {
+			return nil, err
+		}
+
+		payroll.PDFPath = pdfPath
+		payroll, err = s.payrollRepo.Update(ctx, payroll)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	payrollUrl := fmt.Sprintf("%s/%s", config.GetEnv().ServerBaseURL, *payroll.PDFPath)
+	err = utils.SendEmail(utils.EmailParams{
+		FromName:   config.GetEnv().SMTPFromName,
+		FromEmail:  config.GetEnv().SMTPFromEmail,
+		Password:   config.GetEnv().SMTPPassword,
+		Host:       config.GetEnv().SMTPHost,
+		Port:       config.GetEnv().SMTPPort,
+		Encryption: utils.EncryptionType(config.GetEnv().SMTPEncryption),
+		ToName:     employee.FullName,
+		ToEmail:    employee.Email,
+		Subject:    fmt.Sprintf("Payroll Slip - %s", time.Now().In(time.FixedZone("WIB", 7*3600)).Format("January 2006")),
+		Template:   "templates/payroll.html",
+		Data: map[string]any{
+			"EmployeeName": employee.FullName,
+			"PayrollDate":  time.Now().In(time.FixedZone("WIB", 7*3600)).Format("02 January 2006"),
+			"NetSalary":    payroll.NetSalary,
+			"PayrollURL":   payrollUrl,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	payroll.Status = model.PayrollStatusSent
+	payroll.SentAt = &now
+
+	updated, err := s.payrollRepo.Update(ctx, payroll)
+	if err != nil {
+		return nil, err
+	}
+
 	return updated, nil
 }

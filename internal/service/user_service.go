@@ -19,7 +19,6 @@ type UserService interface {
 	Update(ctx context.Context, userID string, payload request.UserUpdateRequest) (*model.User, error)
 	UpdateProfile(ctx context.Context, userID string, payload request.UserUpdateProfileRequest) (*model.User, error)
 	Delete(ctx context.Context, userID string) error
-	// SendEmail()
 }
 
 type userService struct {
@@ -111,7 +110,7 @@ func (s *userService) GetByID(ctx context.Context, userID string) (*model.User, 
 }
 
 func (s *userService) Update(ctx context.Context, userID string, payload request.UserUpdateRequest) (*model.User, error) {
-	user, err := s.userRepo.GetByID(ctx, userID, false)
+	user, err := s.userRepo.GetByID(ctx, userID, true)
 	if err != nil {
 		if isNotFoundError(err) {
 			return nil, ErrUserNotFound

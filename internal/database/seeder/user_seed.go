@@ -25,22 +25,47 @@ func SeedUsers() {
 	}
 
 	users := []model.User{
-		{ID: uuid.NewString(), FullName: "Admin", Email: "admin@kingroyal.com", Password: adminPassword, Role: "admin"},
-		{ID: uuid.NewString(), FullName: "User", Email: "user@kingroyal.com", Password: userPassword, Role: "user"},
+		{FullName: "Admin", Email: "admin@kingroyal.com", Password: adminPassword, Role: "admin"},
+		{FullName: "User", Email: "user@kingroyal.com", Password: userPassword, Role: "user"},
 	}
 
 	for _, user := range users {
 		var existing model.User
-		err := db.Where("email = ?", user.Email).Attrs(user).FirstOrCreate(&existing).Error
-		if err != nil {
-			log.Printf("Failed seed user %s: %v\n", user.Email, err)
+		result := db.Where("email = ?", user.Email).Find(&existing)
+		if result.Error != nil {
+			log.Printf("Failed find user %s: %v\n", user.Email, result.Error)
 			continue
 		}
 
+		if result.RowsAffected == 0 {
+			user.ID = uuid.NewString()
+
+			if err := db.Create(&user).Error; err != nil {
+				log.Printf("Failed seed user %s: %v\n", user.Email, err)
+				continue
+			}
+
+			existing = user
+		}
+
+		// Ensure user profile exists for the created user
 		var profile model.UserProfile
-		err = db.Where("user_id = ?", existing.ID).Attrs(model.UserProfile{UserID: existing.ID}).FirstOrCreate(&profile).Error
-		if err != nil {
-			log.Printf("Failed seed user_profile for %s: %v\n", user.Email, err)
+		result = db.Where("user_id = ?", existing.ID).Find(&profile)
+		if result.Error != nil {
+			log.Printf("Failed find user_profile for %s: %v\n", user.Email, result.Error)
+			continue
+		}
+
+		if result.RowsAffected == 0 {
+			profile = model.UserProfile{
+				ID:     uuid.NewString(),
+				UserID: existing.ID,
+			}
+
+			if err := db.Create(&profile).Error; err != nil {
+				log.Printf("Failed seed user_profile for %s: %v\n", user.Email, err)
+				continue
+			}
 		}
 	}
 }

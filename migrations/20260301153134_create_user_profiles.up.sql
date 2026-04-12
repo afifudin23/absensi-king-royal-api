@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS user_profiles (
-    id CHAR(36) NOT NULL DEFAULT (UUID()),
+    id CHAR(36) PRIMARY KEY NOT NULL DEFAULT (UUID()),
     user_id CHAR(36) NOT NULL,
     employee_code VARCHAR(100) NULL,
     employment_status ENUM('permanent', 'contract', 'internship', 'freelance') NULL,

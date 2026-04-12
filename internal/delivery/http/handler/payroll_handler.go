@@ -78,3 +78,14 @@ func (h *PayrollHandler) Update(c *gin.Context) {
 
 	c.JSON(http.StatusOK, common.SuccessResponse(response.ToPayrollResponse(payroll)))
 }
+
+func (h *PayrollHandler) SendPayroll(c *gin.Context) {
+	payrollID := c.Param("payroll_id")
+	payroll, err := h.service.SendPayroll(c.Request.Context(), payrollID)
+	if err != nil {
+		common.ErrorHandler(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToPayrollResponse(payroll)))
+}

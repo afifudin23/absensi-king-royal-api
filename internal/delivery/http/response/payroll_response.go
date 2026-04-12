@@ -20,6 +20,7 @@ type PayrollResponse struct {
 	AdditionalData      datatypes.JSON `json:"additional_data"`
 	NetSalary           float64        `json:"net_salary"`
 	Status              string         `json:"status"`
+	PDFPath             *string        `json:"pdf_path"`
 	SentAt              *time.Time     `json:"sent_at"`
 	CreatedAt           time.Time      `json:"created_at"`
 	UpdatedAt           time.Time      `json:"updated_at"`
@@ -42,6 +43,7 @@ func ToPayrollResponse(data *model.Payroll) *PayrollResponse {
 		IncomeTax:           data.IncomeTax,
 		AdditionalData:      data.AdditionalData,
 		NetSalary:           data.NetSalary,
+		PDFPath:             data.PDFPath,
 		Status:              string(data.Status),
 		SentAt:              data.SentAt,
 		CreatedAt:           data.CreatedAt,
