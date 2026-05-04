@@ -6,9 +6,10 @@ CREATE TABLE IF NOT EXISTS attendances (
     check_in_at DATETIME NULL,
     check_out_at DATETIME NULL,
     check_in_file_id CHAR(36) NULL,
-    check_in_file_url TEXT NULL,
     check_out_file_id CHAR(36) NULL,
-    check_out_file_url TEXT NULL,
+    note TEXT NULL,
+    source ENUM('self_service', 'admin_edit', 'approved_request', 'system') NOT NULL DEFAULT 'self_service',
+    updated_by CHAR(36) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -26,7 +27,13 @@ CREATE TABLE IF NOT EXISTS attendances (
         FOREIGN KEY (check_out_file_id) REFERENCES files(id)
         ON DELETE SET NULL
         ON UPDATE CASCADE,
+
+    CONSTRAINT fk_attendances_updated_by
+        FOREIGN KEY (updated_by) REFERENCES users(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE,
     
     UNIQUE KEY uq_attendances_user_id_date (user_id, date),
-    KEY idx_attendances_date (date)
+    KEY idx_attendances_date (date),
+    KEY idx_attendances_status (status)
 );

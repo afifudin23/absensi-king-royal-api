@@ -16,7 +16,7 @@ type AttendanceService interface {
 	CheckIn(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error)
 	CheckOut(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error)
 	GetLogs(ctx context.Context, userID string) ([]model.Attendance, error)
-	Update(ctx context.Context, id string, payload request.AttendanceUpdateRequest) (*model.Attendance, error)
+	Update(ctx context.Context, updaterID string, id string, payload request.AttendanceUpdateRequest) (*model.Attendance, error)
 }
 
 type attendanceService struct {
@@ -46,7 +46,6 @@ func (s *attendanceService) CheckIn(ctx context.Context, userID string, payload 
 	if file.UploadedBy != userID {
 		return nil, common.ForbiddenError("File does not belong to current user")
 	}
-	fileURL := file.FileURL
 
 	attendance, err := s.attendanceRepo.GetByUserAndDate(ctx, userID, today)
 	if err != nil {
@@ -55,11 +54,12 @@ func (s *attendanceService) CheckIn(ctx context.Context, userID string, payload 
 		}
 
 		attendance = &model.Attendance{
-			UserID:         userID,
-			Date:           today,
-			CheckInAt:      &now,
-			CheckInFileID:  &payload.FileID,
-			CheckInFileURL: &fileURL,
+			UserID:        userID,
+			Status:        model.AttendanceStatusPresent,
+			Date:          today,
+			CheckInAt:     &now,
+			CheckInFileID: &payload.FileID,
+			Source:        model.AttendanceSourceSelfService,
 		}
 		if err := s.attendanceRepo.Create(ctx, attendance); err != nil {
 			// Race protection: if a duplicate row is inserted concurrently, re-fetch it.
@@ -74,9 +74,10 @@ func (s *attendanceService) CheckIn(ctx context.Context, userID string, payload 
 		}
 	}
 
+	attendance.Status = model.AttendanceStatusPresent
 	attendance.CheckInAt = &now
 	attendance.CheckInFileID = &payload.FileID
-	attendance.CheckInFileURL = &fileURL
+	attendance.Source = model.AttendanceSourceSelfService
 	if err := s.attendanceRepo.Update(ctx, attendance); err != nil {
 		return nil, err
 	}
@@ -102,7 +103,6 @@ func (s *attendanceService) CheckOut(ctx context.Context, userID string, payload
 	if file.UploadedBy != userID {
 		return nil, common.ForbiddenError("File does not belong to current user")
 	}
-	fileURL := file.FileURL
 
 	attendance, err := s.attendanceRepo.GetByUserAndDate(ctx, userID, today)
 	if err != nil {
@@ -120,9 +120,11 @@ func (s *attendanceService) CheckOut(ctx context.Context, userID string, payload
 		return nil, common.BadRequestError("You have already checked out today")
 	}
 
+	attendance.Status = model.AttendanceStatusPresent
 	attendance.CheckOutAt = &now
 	attendance.CheckOutFileID = &payload.FileID
-	attendance.CheckOutFileURL = &fileURL
+	attendance.CheckOutFile = file
+	attendance.Source = model.AttendanceSourceSelfService
 	if err := s.attendanceRepo.Update(ctx, attendance); err != nil {
 		return nil, err
 	}
@@ -134,7 +136,7 @@ func (s *attendanceService) GetLogs(ctx context.Context, userID string) ([]model
 	return s.attendanceRepo.GetLogsByUserID(ctx, userID)
 }
 
-func (s *attendanceService) Update(ctx context.Context, id string, payload request.AttendanceUpdateRequest) (*model.Attendance, error) {
+func (s *attendanceService) Update(ctx context.Context, updaterID string, id string, payload request.AttendanceUpdateRequest) (*model.Attendance, error) {
 	existing, err := s.attendanceRepo.GetByID(ctx, id)
 	if err != nil {
 		if isNotFoundError(err) {
@@ -151,6 +153,10 @@ func (s *attendanceService) Update(ctx context.Context, id string, payload reque
 		existing.CheckInAt = checkInTime
 	}
 
+	if payload.Status != nil {
+		existing.Status = *payload.Status
+	}
+
 	if payload.CheckOutAt != nil && *payload.CheckOutAt != "" {
 		checkOut, err := CombineDateAndHHMM(existing.Date, *payload.CheckOutAt)
 		if err != nil {
@@ -158,6 +164,11 @@ func (s *attendanceService) Update(ctx context.Context, id string, payload reque
 		}
 		existing.CheckOutAt = checkOut
 	}
+	if payload.Note != nil {
+		existing.Note = payload.Note
+	}
+	existing.Source = model.AttendanceSourceAdminEdit
+	existing.UpdatedBy = &updaterID
 	if err := s.attendanceRepo.Update(ctx, existing); err != nil {
 		return nil, err
 	}

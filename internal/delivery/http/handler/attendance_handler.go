@@ -93,8 +93,14 @@ func (h *AttendanceHandler) Update(c *gin.Context) {
 		common.ErrorHandler(c, common.ValidationError(common.ErrorValidation(err)))
 		return
 	}
+	payload.Normalize()
 
-	attendance, err := h.service.Update(c.Request.Context(), attendanceID, payload)
+	updaterID, ok := utils.GetCurrentUserID(c)
+	if !ok {
+		return
+	}
+
+	attendance, err := h.service.Update(c.Request.Context(), updaterID, attendanceID, payload)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
