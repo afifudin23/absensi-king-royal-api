@@ -27,6 +27,8 @@ func NewAttendanceRepository(db *gorm.DB) AttendanceRepository {
 func (r *attendanceRepository) GetByUserAndDate(ctx context.Context, userID string, date time.Time) (*model.Attendance, error) {
 	var attendance model.Attendance
 	err := r.db.WithContext(ctx).
+		Preload("CheckInFile").
+		Preload("CheckOutFile").
 		Where("user_id = ? AND date = ?", userID, date.Format("2006-01-02")).
 		Take(&attendance).Error
 	if err != nil {
@@ -46,6 +48,8 @@ func (r *attendanceRepository) Update(ctx context.Context, attendance *model.Att
 func (r *attendanceRepository) GetLogsByUserID(ctx context.Context, userID string) ([]model.Attendance, error) {
 	var logs []model.Attendance
 	err := r.db.WithContext(ctx).
+		Preload("CheckInFile").
+		Preload("CheckOutFile").
 		Where("user_id = ?", userID).
 		Order("date DESC, created_at DESC").
 		Find(&logs).Error

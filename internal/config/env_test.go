@@ -26,6 +26,12 @@ func TestLoadEnv_PrefersDotEnvOverProcessEnv(t *testing.T) {
 		"ACCESS_KEY",
 		"SERVER_BASE_URL",
 		"PORT",
+		"SMTP_FROM_NAME",
+		"SMTP_FROM_EMAIL",
+		"SMTP_PASSWORD",
+		"SMTP_HOST",
+		"SMTP_PORT",
+		"SMTP_ENCRYPTION",
 	)
 	t.Cleanup(restoreEnv)
 
@@ -33,6 +39,10 @@ func TestLoadEnv_PrefersDotEnvOverProcessEnv(t *testing.T) {
 	mustSetenv(t, "ENVIRONMENT", "production")
 	mustSetenv(t, "DATABASE_URL", "mysql://from-process-env")
 	mustSetenv(t, "SERVER_BASE_URL", "https://from-process-env.example")
+	mustSetenv(t, "SMTP_FROM_EMAIL", "noreply@process-env.example")
+	mustSetenv(t, "SMTP_PASSWORD", "dummy-password")
+	mustSetenv(t, "SMTP_HOST", "smtp.process-env.example")
+	mustSetenv(t, "SMTP_PORT", "587")
 
 	// ...but .env should win.
 	dotEnv := []byte(
@@ -91,4 +101,3 @@ func snapshotEnv(keys ...string) func() {
 		}
 	}
 }
-

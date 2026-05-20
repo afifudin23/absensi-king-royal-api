@@ -4,6 +4,65 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.8.0] - 2026-05-20
+
+### Added
+
+- Attendance request module (replaces leave_request):
+  - `POST /api/v1/attendance-requests`
+  - `GET /api/v1/attendance-requests`
+  - `GET /api/v1/attendance-requests/me`
+  - `GET /api/v1/attendance-requests/:attendance_request_id`
+  - `PUT /api/v1/attendance-requests/:attendance_request_id`
+  - `PATCH /api/v1/attendance-requests/:attendance_request_id/status` (admin only)
+  - `DELETE /api/v1/attendance-requests/:attendance_request_id`
+- Attendance request domain implementation:
+  - Model: `internal/model/attendance_request_model.go`
+  - Repository: `internal/repository/attendance_request_repository.go`
+  - Service: `internal/service/attendance_request_service.go`
+  - Handler: `internal/delivery/http/handler/attendance_request_handler.go`
+  - Request DTO: `internal/delivery/http/request/attendance_requests.go`
+  - Response DTO: `internal/delivery/http/response/attendance_request_response.go`
+  - Router registration: `internal/delivery/http/router/attendance_request_route.go`
+- Attendance request migration:
+  - `migrations/20260312034410_create_attendance_requests_table.up.sql`
+  - `migrations/20260312034410_create_attendance_requests_table.down.sql`
+- Attendance request supports 5 types: `sick`, `leave`, `extra_off`, `overtime`, `correction`.
+- Attendance request review workflow with statuses: `pending`, `approved`, `rejected`, `cancelled`.
+- Approved requests auto-apply changes to the `attendances` table (upsert per date).
+- `Attendance.status` enum: `present`, `off`, `sick`, `extra_off`, `absent`, `leave`.
+- `Attendance.source` enum: `self_service`, `admin_edit`, `approved_request`, `system`.
+- `Attendance.updated_by` — tracks which admin last edited the record.
+- `Attendance.note` — optional free-text note on an attendance record.
+
+### Changed
+
+- Attendance check-in/out now sets `source = self_service` and `status = present` explicitly.
+- Attendance update (`PATCH /api/v1/attendance/:attendance_id`) now accepts `status` and `note` fields, sets `source = admin_edit`, and records `updated_by`.
+- Attendance response now includes `status`, `source`, `updated_by`, and `note` fields.
+- File URLs in attendance response are now resolved via GORM relation (`CheckInFile`, `CheckOutFile`) instead of a stored URL column; columns `check_in_file_url` and `check_out_file_url` removed from the model.
+
+### Removed
+
+- Leave request module removed and replaced by the more comprehensive attendance request module:
+  - `internal/model/leave_request_model.go`
+  - `internal/repository/leave_request_repository.go`
+  - `internal/service/leave_request_service.go`
+  - `internal/delivery/http/handler/leave_request_handler.go`
+  - `internal/delivery/http/request/leave_request.go`
+  - `internal/delivery/http/response/leave_response.go`
+  - `internal/delivery/http/router/leave_request_route.go`
+  - `migrations/20260312034410_create_leave_requests_table.up.sql`
+  - `migrations/20260312034410_create_leave_requests_table.down.sql`
+
+### Migration Required
+
+- Yes.
+- Run:
+  - `make migrate-up`
+
+---
+
 ## [0.7.0] - 2026-04-05
 
 ### Added
