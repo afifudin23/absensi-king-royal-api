@@ -2,10 +2,12 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
+	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
 	"github.com/afifudin23/absensi-king-royal-api/internal/service"
 	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -42,7 +44,28 @@ func (h *AttendanceRequestHandler) Create(c *gin.Context) {
 }
 
 func (h *AttendanceRequestHandler) GetAll(c *gin.Context) {
-	items, err := h.service.GetAll(c.Request.Context())
+	filter := &repository.AttendanceRequestFilter{
+		Status: c.Query("status"),
+		Type:   c.Query("type"),
+	}
+	if s := c.Query("start_date"); s != "" {
+		t, err := time.Parse("2006-01-02", s)
+		if err != nil {
+			common.ErrorHandler(c, common.BadRequestError("Invalid start_date format, use YYYY-MM-DD"))
+			return
+		}
+		filter.StartDate = &t
+	}
+	if e := c.Query("end_date"); e != "" {
+		t, err := time.Parse("2006-01-02", e)
+		if err != nil {
+			common.ErrorHandler(c, common.BadRequestError("Invalid end_date format, use YYYY-MM-DD"))
+			return
+		}
+		filter.EndDate = &t
+	}
+
+	items, err := h.service.GetAll(c.Request.Context(), filter)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
@@ -122,12 +145,16 @@ func (h *AttendanceRequestHandler) UpdateStatus(c *gin.Context) {
 }
 
 func (h *AttendanceRequestHandler) Delete(c *gin.Context) {
-	attendanceRequestID := c.Param("attendance_request_id")
-	err := h.service.Delete(c.Request.Context(), attendanceRequestID)
+	var payload request.AttendanceRequestBulkDeleteRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.ErrorHandler(c, common.ValidationError(err))
+		return
+	}
+	err := h.service.Delete(c.Request.Context(), payload.IDs)
 	if err != nil {
 		common.ErrorHandler(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, common.SuccessResponse(common.ToSuccessResponse(attendanceRequestID)))
+	c.JSON(http.StatusOK, common.SuccessResponse(common.ToDeleteSuccessResponse(len(payload.IDs))))
 }

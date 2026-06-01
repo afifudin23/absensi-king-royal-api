@@ -21,6 +21,7 @@ func registerPayroll(rg *gin.RouterGroup) {
 	payroll.Use(middleware.AuthMiddleware())
 	{
 		payroll.GET("", payrollHandler.GetAll)
+		payroll.GET("/me", payrollHandler.GetMyPayrolls)
 		payroll.GET("/:payroll_id", payrollHandler.GetByID)
 		payroll.POST("/generate/:employee_id", payrollHandler.GenerateOne)
 		payroll.POST("/generate-all", payrollHandler.GenerateAll)

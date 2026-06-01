@@ -10,6 +10,25 @@ Absensi King Royal backend API built with Go + Gin.
 - MySQL / MariaDB
 - `make` (optional but recommended)
 
+**Install `make` on Windows (if not available):**
+
+```powershell
+# Using winget (no admin required for user install)
+winget install GnuWin32.Make
+```
+
+Then add to PATH (add to `~/.zshrc` if using zsh):
+
+```bash
+export PATH=$PATH:"/c/Program Files (x86)/GnuWin32/bin"
+```
+
+**Add Go binary path to `~/.zshrc`** so installed tools like `migrate` and `air` are accessible:
+
+```bash
+export PATH=$PATH:$(go env GOPATH)/bin
+```
+
 ### 2) Clone and enter project
 
 ```bash
@@ -41,7 +60,7 @@ If you do not use `make`:
 
 ```bash
 go mod tidy
-go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 go install github.com/air-verse/air@latest
 ```
 

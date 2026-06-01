@@ -11,7 +11,8 @@ import (
 func registerAuthRoutes(rg *gin.RouterGroup) {
 	db := config.GetDB()
 	userRepo := repository.NewUserRepository(db)
-	authService := service.NewAuthService(userRepo)
+	userOtpRepo := repository.NewUserOTPRepository(db)
+	authService := service.NewAuthService(userRepo, userOtpRepo)
 	authHandler := handler.NewAuthHandler(authService)
 
 	auth := rg.Group("/auth")
@@ -20,5 +21,7 @@ func registerAuthRoutes(rg *gin.RouterGroup) {
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/logout", authHandler.Logout)
+		auth.POST("/forgot-password", authHandler.ForgotPassword)
+		auth.POST("/reset-password", authHandler.ResetPassword)
 	}
 }

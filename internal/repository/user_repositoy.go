@@ -9,8 +9,13 @@ import (
 	"gorm.io/gorm"
 )
 
+type UserFilter struct {
+	Search string
+	Role   string
+}
+
 type UserRepository interface {
-	GetAll(ctx context.Context, loadProfile bool) ([]model.User, error)
+	GetAll(ctx context.Context, loadProfile bool, filter *UserFilter) ([]model.User, error)
 	GetByID(ctx context.Context, id string, loadProfile bool) (*model.User, error)
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 	Create(ctx context.Context, user *model.User, profile *model.UserProfile) error
@@ -26,11 +31,22 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db: db}
 }
 
-func (r *userRepository) GetAll(ctx context.Context, loadProfile bool) ([]model.User, error) {
+func (r *userRepository) GetAll(ctx context.Context, loadProfile bool, filter *UserFilter) ([]model.User, error) {
 	var users []model.User
 	query := r.db.WithContext(ctx)
 	if loadProfile {
-		query = query.Preload("Profile")
+		query = query.Preload("Profile", func(db *gorm.DB) *gorm.DB {
+			return db.Order("updated_at DESC")
+		})
+	}
+	if filter != nil {
+		if filter.Search != "" {
+			like := "%" + filter.Search + "%"
+			query = query.Where("full_name LIKE ? OR email LIKE ?", like, like)
+		}
+		if filter.Role != "" {
+			query = query.Where("role = ?", filter.Role)
+		}
 	}
 	err := query.Find(&users).Error
 	return users, err
@@ -38,14 +54,17 @@ func (r *userRepository) GetAll(ctx context.Context, loadProfile bool) ([]model.
 
 func (r *userRepository) GetByID(ctx context.Context, id string, loadProfile bool) (*model.User, error) {
 	var user model.User
-
-	query := r.db.WithContext(ctx).Where("id = ?", id)
-	if loadProfile {
-		query = query.Preload("Profile")
-	}
-	err := query.Take(&user).Error
+	err := r.db.WithContext(ctx).Where("id = ?", id).Take(&user).Error
 	if err != nil {
 		return nil, err
+	}
+	if loadProfile {
+		var profile model.UserProfile
+		if err := r.db.WithContext(ctx).
+			Where("user_id = ?", user.ID).
+			First(&profile).Error; err == nil {
+			user.Profile = &profile
+		}
 	}
 	return &user, nil
 }
@@ -53,11 +72,17 @@ func (r *userRepository) GetByID(ctx context.Context, id string, loadProfile boo
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	var user model.User
 	err := r.db.WithContext(ctx).
-		Preload("Profile").
 		Where("email = ?", strings.ToLower(strings.TrimSpace(email))).
 		Take(&user).Error
 	if err != nil {
 		return nil, err
+	}
+	var profile model.UserProfile
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", user.ID).
+		Order("updated_at DESC").
+		First(&profile).Error; err == nil {
+		user.Profile = &profile
 	}
 	return &user, nil
 }
@@ -99,6 +124,12 @@ func (r *userRepository) Update(ctx context.Context, user *model.User, profile *
 
 		if profile != nil {
 			profile.UserID = user.ID
+			if profile.ID == "" {
+				var existing model.UserProfile
+				if err := tx.Where("user_id = ?", user.ID).First(&existing).Error; err == nil {
+					profile.ID = existing.ID
+				}
+			}
 			if err := tx.Save(profile).Error; err != nil {
 				return err
 			}

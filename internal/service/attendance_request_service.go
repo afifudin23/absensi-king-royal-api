@@ -14,12 +14,12 @@ import (
 
 type AttendanceRequestService interface {
 	Create(ctx context.Context, userID string, payload request.AttendanceRequestCreateRequest) (*model.AttendanceRequest, error)
-	GetAll(ctx context.Context) ([]model.AttendanceRequest, error)
+	GetAll(ctx context.Context, filter *repository.AttendanceRequestFilter) ([]model.AttendanceRequest, error)
 	GetByID(ctx context.Context, id string) (*model.AttendanceRequest, error)
 	GetByUserID(ctx context.Context, userID string) ([]model.AttendanceRequest, error)
 	Update(ctx context.Context, userID string, id string, payload request.AttendanceRequestUpdateRequest) (*model.AttendanceRequest, error)
 	UpdateStatus(ctx context.Context, reviewerID string, id string, payload request.AttendanceRequestUpdateStatusRequest) (*model.AttendanceRequest, error)
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, ids []string) error
 }
 
 type attendanceRequestService struct {
@@ -51,6 +51,14 @@ func (s *attendanceRequestService) Create(ctx context.Context, userID string, pa
 		return nil, common.BadRequestError("End date must be greater than or equal to start date")
 	}
 
+	overlapping, err := s.attendanceRequestRepo.HasOverlappingRequest(ctx, userID, startDate, endDate, nil)
+	if err != nil {
+		return nil, err
+	}
+	if overlapping {
+		return nil, common.BadRequestError("Sudah ada pengajuan izin yang pending atau approved pada tanggal tersebut")
+	}
+
 	if payload.EvidenceFileID != nil {
 		file, err := s.fileRepo.GetByID(ctx, *payload.EvidenceFileID)
 		if err != nil {
@@ -66,31 +74,14 @@ func (s *attendanceRequestService) Create(ctx context.Context, userID string, pa
 	}
 
 	data := &model.AttendanceRequest{
-		UserID:                   userID,
-		AttendanceID:             payload.AttendanceID,
-		StartDate:                startDate,
-		EndDate:                  endDate,
-		Reason:                   payload.Reason,
-		Type:                     payload.Type,
-		EvidenceFileID:           payload.EvidenceFileID,
-		RequestedOvertimeMinutes: payload.RequestedOvertimeMinutes,
-		Status:                   model.AttendanceRequestStatusPending,
-	}
-
-	if payload.RequestedCheckInAt != nil {
-		ts, err := combineDateTime(startDate, *payload.RequestedCheckInAt)
-		if err != nil {
-			return nil, common.BadRequestError("requested_check_in_at must be in HH:MM format")
-		}
-		data.RequestedCheckInAt = ts
-	}
-
-	if payload.RequestedCheckOutAt != nil {
-		ts, err := combineDateTime(endDate, *payload.RequestedCheckOutAt)
-		if err != nil {
-			return nil, common.BadRequestError("requested_check_out_at must be in HH:MM format")
-		}
-		data.RequestedCheckOutAt = ts
+		UserID:                 userID,
+		StartDate:              startDate,
+		EndDate:                endDate,
+		Reason:                 payload.Reason,
+		Type:                   payload.Type,
+		EvidenceFileID:         payload.EvidenceFileID,
+		RequestedOvertimeHours: payload.RequestedOvertimeHours,
+		Status:                 model.AttendanceRequestStatusPending,
 	}
 
 	if err := s.attendanceRequestRepo.Create(ctx, data); err != nil {
@@ -100,8 +91,8 @@ func (s *attendanceRequestService) Create(ctx context.Context, userID string, pa
 	return data, nil
 }
 
-func (s *attendanceRequestService) GetAll(ctx context.Context) ([]model.AttendanceRequest, error) {
-	return s.attendanceRequestRepo.GetAll(ctx, true)
+func (s *attendanceRequestService) GetAll(ctx context.Context, filter *repository.AttendanceRequestFilter) ([]model.AttendanceRequest, error) {
+	return s.attendanceRequestRepo.GetAll(ctx, true, filter)
 }
 
 func (s *attendanceRequestService) GetByID(ctx context.Context, id string) (*model.AttendanceRequest, error) {
@@ -157,10 +148,6 @@ func (s *attendanceRequestService) Update(ctx context.Context, userID string, id
 		data.Type = *payload.Type
 	}
 
-	if payload.AttendanceID != nil {
-		data.AttendanceID = payload.AttendanceID
-	}
-
 	if payload.EvidenceFileID != nil {
 		file, err := s.fileRepo.GetByID(ctx, *payload.EvidenceFileID)
 		if err != nil {
@@ -176,32 +163,8 @@ func (s *attendanceRequestService) Update(ctx context.Context, userID string, id
 		data.EvidenceFileID = payload.EvidenceFileID
 	}
 
-	if payload.RequestedCheckInAt != nil {
-		baseDate := existing.StartDate
-		if !data.StartDate.IsZero() {
-			baseDate = data.StartDate
-		}
-		checkInAt, err := combineDateTime(baseDate, *payload.RequestedCheckInAt)
-		if err != nil {
-			return nil, common.BadRequestError("requested_check_in_at must be in HH:MM format")
-		}
-		data.RequestedCheckInAt = checkInAt
-	}
-
-	if payload.RequestedCheckOutAt != nil {
-		baseDate := existing.EndDate
-		if !data.EndDate.IsZero() {
-			baseDate = data.EndDate
-		}
-		checkOutAt, err := combineDateTime(baseDate, *payload.RequestedCheckOutAt)
-		if err != nil {
-			return nil, common.BadRequestError("requested_check_out_at must be in HH:MM format")
-		}
-		data.RequestedCheckOutAt = checkOutAt
-	}
-
-	if payload.RequestedOvertimeMinutes != nil {
-		data.RequestedOvertimeMinutes = payload.RequestedOvertimeMinutes
+	if payload.RequestedOvertimeHours != nil {
+		data.RequestedOvertimeHours = payload.RequestedOvertimeHours
 	}
 
 	if err := s.attendanceRequestRepo.Update(ctx, data); err != nil {
@@ -224,29 +187,29 @@ func (s *attendanceRequestService) UpdateStatus(ctx context.Context, reviewerID 
 	}
 
 	now := time.Now()
-	data := &model.AttendanceRequest{
-		ID:         id,
-		Status:     payload.Status,
-		ReviewedBy: &reviewerID,
-		ReviewedAt: &now,
-	}
 
-	if err := s.attendanceRequestRepo.Update(ctx, data); err != nil {
+	existing.Status = payload.Status
+	existing.ReviewedBy = &reviewerID
+	existing.ReviewedAt = &now
+
+	if err := s.attendanceRequestRepo.Update(ctx, existing); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.NotFoundError("Attendance request not found")
 		}
 		return nil, err
 	}
 
-	existing.Status = payload.Status
-	existing.ReviewedBy = &reviewerID
-	existing.ReviewedAt = &now
+	if payload.Status == model.AttendanceRequestStatusApproved {
+		if err := s.applyApprovedRequestToAttendance(ctx, existing, reviewerID); err != nil {
+			return nil, err
+		}
+	}
 
 	return existing, nil
 }
 
-func (s *attendanceRequestService) Delete(ctx context.Context, id string) error {
-	err := s.attendanceRequestRepo.Delete(ctx, id)
+func (s *attendanceRequestService) Delete(ctx context.Context, ids []string) error {
+	err := s.attendanceRequestRepo.Delete(ctx, ids)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common.NotFoundError("Attendance request not found")
@@ -254,10 +217,6 @@ func (s *attendanceRequestService) Delete(ctx context.Context, id string) error 
 		return err
 	}
 	return nil
-}
-
-func combineDateTime(date time.Time, hhmm string) (*time.Time, error) {
-	return CombineDateAndHHMM(date, hhmm)
 }
 
 func (s *attendanceRequestService) applyApprovedRequestToAttendance(ctx context.Context, req *model.AttendanceRequest, reviewerID string) error {
@@ -275,6 +234,7 @@ func (s *attendanceRequestService) applyApprovedRequestToAttendance(ctx context.
 				a.CheckOutAt = nil
 				a.CheckInFileID = nil
 				a.CheckOutFileID = nil
+				a.EvidenceFileID = req.EvidenceFileID
 				a.Source = model.AttendanceSourceApprovedRequest
 				a.UpdatedBy = &reviewerID
 			}); err != nil {
@@ -283,47 +243,18 @@ func (s *attendanceRequestService) applyApprovedRequestToAttendance(ctx context.
 		}
 		return nil
 
-	case model.AttendanceRequestTypeCorrection:
-		// Prefer explicit AttendanceID if provided.
-		if req.AttendanceID != nil && *req.AttendanceID != "" {
-			existing, err := s.attendanceRepo.GetByID(ctx, *req.AttendanceID)
-			if err != nil {
-				if isNotFoundError(err) {
-					return common.BadRequestError("Invalid attendance_id")
-				}
+	case model.AttendanceRequestTypeOvertime:
+		// Isi overtime_hours ke attendance saat request diapprove
+		for d := req.StartDate; !d.After(req.EndDate); d = d.AddDate(0, 0, 1) {
+			day := startOfDay(d)
+			if err := s.upsertAttendanceForDay(ctx, req.UserID, day, func(a *model.Attendance) {
+				a.OvertimeHours = req.RequestedOvertimeHours
+				a.Source = model.AttendanceSourceApprovedRequest
+				a.UpdatedBy = &reviewerID
+			}); err != nil {
 				return err
 			}
-			if existing.UserID != req.UserID {
-				return common.BadRequestError("attendance_id does not belong to request user")
-			}
-
-			if req.RequestedCheckInAt != nil {
-				existing.CheckInAt = req.RequestedCheckInAt
-			}
-			if req.RequestedCheckOutAt != nil {
-				existing.CheckOutAt = req.RequestedCheckOutAt
-			}
-			existing.Status = model.AttendanceStatusPresent
-			existing.Source = model.AttendanceSourceApprovedRequest
-			existing.UpdatedBy = &reviewerID
-			return s.attendanceRepo.Update(ctx, existing)
 		}
-
-		day := startOfDay(req.StartDate)
-		return s.upsertAttendanceForDay(ctx, req.UserID, day, func(a *model.Attendance) {
-			if req.RequestedCheckInAt != nil {
-				a.CheckInAt = req.RequestedCheckInAt
-			}
-			if req.RequestedCheckOutAt != nil {
-				a.CheckOutAt = req.RequestedCheckOutAt
-			}
-			a.Status = model.AttendanceStatusPresent
-			a.Source = model.AttendanceSourceApprovedRequest
-			a.UpdatedBy = &reviewerID
-		})
-
-	case model.AttendanceRequestTypeOvertime:
-		// No changes to attendance table (overtime minutes are stored in the request).
 		return nil
 	}
 

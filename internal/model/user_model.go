@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type UserRole string
 
@@ -22,6 +27,13 @@ type User struct {
 	UpdatedAt time.Time `gorm:"column:updated_at;type:timestamp;not null"`
 
 	Profile *UserProfile `gorm:"foreignKey:UserID;references:ID"`
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	if u.ID == "" {
+		u.ID = uuid.NewString()
+	}
+	return nil
 }
 
 func (User) TableName() string {

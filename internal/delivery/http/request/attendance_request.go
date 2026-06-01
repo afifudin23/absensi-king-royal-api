@@ -16,10 +16,12 @@ func (rq *AttendanceRequest) Normalize() {
 }
 
 type AttendanceUpdateRequest struct {
-	Status     *model.AttendanceStatus `json:"status" binding:"omitempty,oneof=present off sick extra_off absent leave"`
-	CheckInAt  *string                 `json:"check_in_at"`
-	CheckOutAt *string                 `json:"check_out_at"`
-	Note       *string                 `json:"note"`
+	Status         *model.AttendanceStatus `json:"status" binding:"omitempty,oneof=present off sick extra_off absent leave"`
+	CheckInAt      *string                 `json:"check_in_at"`
+	CheckOutAt     *string                 `json:"check_out_at"`
+	Note           *string                 `json:"note"`
+	OvertimeHours  *int                    `json:"overtime_hours"`
+	EvidenceFileID *string                 `json:"evidence_file_id"`
 }
 
 func (rq *AttendanceUpdateRequest) Normalize() {

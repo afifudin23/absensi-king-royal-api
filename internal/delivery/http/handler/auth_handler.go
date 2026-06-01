@@ -68,3 +68,39 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		"message": "logout success, remove bearer token on client",
 	}))
 }
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var payload request.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.ErrorHandler(c, common.ValidationError(common.ErrorValidation(err)))
+		return
+	}
+	payload.Normalize()
+
+	if err := h.Service.ForgotPassword(c.Request.Context(), payload.Email); err != nil {
+		common.ErrorHandler(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(gin.H{
+		"message": "Jika email terdaftar, kode OTP akan dikirim ke email kamu.",
+	}))
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var payload request.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.ErrorHandler(c, common.ValidationError(common.ErrorValidation(err)))
+		return
+	}
+	payload.Normalize()
+
+	if err := h.Service.ResetPassword(c.Request.Context(), payload); err != nil {
+		common.ErrorHandler(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(gin.H{
+		"message": "Password berhasil direset.",
+	}))
+}

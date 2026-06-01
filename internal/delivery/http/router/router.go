@@ -26,6 +26,7 @@ func New() *gin.Engine {
 	registerFileRoutes(v1)
 	registerPayrollSetting(v1)
 	registerPayroll(v1)
+	registerActivityLogRoutes(v1)
 
 	return r
 }

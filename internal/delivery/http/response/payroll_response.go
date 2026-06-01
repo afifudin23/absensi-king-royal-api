@@ -18,6 +18,7 @@ type PayrollResponse struct {
 	AttendanceDeduction float64        `json:"attendance_deduction"`
 	IncomeTax           float64        `json:"income_tax"`
 	AdditionalData      datatypes.JSON `json:"additional_data"`
+	GrossSalary         float64        `json:"gross_salary"`
 	NetSalary           float64        `json:"net_salary"`
 	Status              string         `json:"status"`
 	PDFPath             *string        `json:"pdf_path"`
@@ -42,6 +43,7 @@ func ToPayrollResponse(data *model.Payroll) *PayrollResponse {
 		AttendanceDeduction: data.AttendanceDeduction,
 		IncomeTax:           data.IncomeTax,
 		AdditionalData:      data.AdditionalData,
+		GrossSalary:         data.GrossSalary,
 		NetSalary:           data.NetSalary,
 		PDFPath:             data.PDFPath,
 		Status:              string(data.Status),

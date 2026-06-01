@@ -8,6 +8,7 @@ import (
 
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
+	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
 	"gorm.io/gorm"
 )
 
@@ -19,7 +20,7 @@ type mockAttendanceRequestRepo struct {
 func (m *mockAttendanceRequestRepo) Create(ctx context.Context, req *model.AttendanceRequest) error {
 	return errors.New("not implemented")
 }
-func (m *mockAttendanceRequestRepo) GetAll(ctx context.Context, loadFile bool) ([]model.AttendanceRequest, error) {
+func (m *mockAttendanceRequestRepo) GetAll(ctx context.Context, loadFile bool, filter *repository.AttendanceRequestFilter) ([]model.AttendanceRequest, error) {
 	return nil, errors.New("not implemented")
 }
 func (m *mockAttendanceRequestRepo) GetByID(ctx context.Context, id string, loadFile bool) (*model.AttendanceRequest, error) {
@@ -31,7 +32,7 @@ func (m *mockAttendanceRequestRepo) GetByUserID(ctx context.Context, userID stri
 func (m *mockAttendanceRequestRepo) Update(ctx context.Context, req *model.AttendanceRequest) error {
 	return m.updateFn(ctx, req)
 }
-func (m *mockAttendanceRequestRepo) Delete(ctx context.Context, id string) error {
+func (m *mockAttendanceRequestRepo) Delete(ctx context.Context, ids []string) error {
 	return errors.New("not implemented")
 }
 
@@ -69,7 +70,11 @@ func (m *mockAttendanceRepo) Update(ctx context.Context, attendance *model.Atten
 	return nil
 }
 
-func (m *mockAttendanceRepo) GetLogsByUserID(ctx context.Context, userID string) ([]model.Attendance, error) {
+func (m *mockAttendanceRepo) GetLogsByUserID(ctx context.Context, userID string, startDate, endDate *time.Time) ([]model.Attendance, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (m *mockAttendanceRepo) GetByMonthWithUser(ctx context.Context, month, year int) ([]repository.AttendanceRecapRow, error) {
 	return nil, errors.New("not implemented")
 }
 

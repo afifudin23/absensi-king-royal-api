@@ -10,6 +10,7 @@ import (
 
 type PayrollRepository interface {
 	GetAll(ctx context.Context) ([]model.Payroll, error)
+	GetByEmployeeID(ctx context.Context, employeeID string) ([]model.Payroll, error)
 	GetByID(ctx context.Context, id string) (*model.Payroll, error)
 	GetByEmployeeIDAndCreatedAtRange(ctx context.Context, employeeID string, start time.Time, end time.Time) (*model.Payroll, error)
 	GetByEmployeeIDsAndCreatedAtRange(ctx context.Context, employeeIDs []string, start time.Time, end time.Time) ([]model.Payroll, error)
@@ -30,6 +31,15 @@ func NewPayrollRepository(db *gorm.DB) PayrollRepository {
 func (r *payrollRepository) GetAll(ctx context.Context) ([]model.Payroll, error) {
 	var payrolls []model.Payroll
 	err := r.db.WithContext(ctx).Order("created_at desc").Find(&payrolls).Error
+	return payrolls, err
+}
+
+func (r *payrollRepository) GetByEmployeeID(ctx context.Context, employeeID string) ([]model.Payroll, error) {
+	var payrolls []model.Payroll
+	err := r.db.WithContext(ctx).
+		Where("employee_id = ? AND status = ?", employeeID, model.PayrollStatusSent).
+		Order("created_at DESC").
+		Find(&payrolls).Error
 	return payrolls, err
 }
 
@@ -112,6 +122,7 @@ func (r *payrollRepository) Update(ctx context.Context, payroll *model.Payroll) 
 			"attendance_deduction": payroll.AttendanceDeduction,
 			"income_tax":           payroll.IncomeTax,
 			"additional_data":      payroll.AdditionalData,
+			"gross_salary":         payroll.GrossSalary,
 			"net_salary":           payroll.NetSalary,
 			"status":               payroll.Status,
 			"sent_at":              payroll.SentAt,

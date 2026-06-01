@@ -24,6 +24,7 @@ import (
 
 type PayrollService interface {
 	GetAll(ctx context.Context) ([]model.Payroll, error)
+	GetMyPayrolls(ctx context.Context, userID string) ([]model.Payroll, error)
 	GetByID(ctx context.Context, id string) (*model.Payroll, error)
 	GenerateOne(ctx context.Context, employeeID string) (*model.Payroll, error)
 	GenerateAll(ctx context.Context) ([]model.Payroll, error)
@@ -41,64 +42,249 @@ func NewPayrollService(payrollRepo repository.PayrollRepository, payrollSettingR
 	return &payrollService{payrollRepo: payrollRepo, payrollSettingRepo: payrollSettingRepo, userRepo: userRepo}
 }
 
+func bpjsDeduction(additionalData datatypes.JSON) float64 {
+	var extra struct {
+		BPJSHealth float64 `json:"bpjs_health_rate"`
+		BPJSJHT    float64 `json:"bpjs_employment_jht_rate"`
+		BPJSJP     float64 `json:"bpjs_employment_jp_rate"`
+	}
+	_ = json.Unmarshal(additionalData, &extra)
+	return extra.BPJSHealth + extra.BPJSJHT + extra.BPJSJP
+}
+
+func formatIDR(amount float64) string {
+	intPart := int64(amount)
+	s := fmt.Sprintf("%d", intPart)
+	result := ""
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			result += "."
+		}
+		result += string(c)
+	}
+	return "Rp " + result
+}
+
+func slipNum(amount float64) string {
+	if amount == 0 {
+		return "-"
+	}
+	intPart := int64(amount)
+	s := fmt.Sprintf("%d", intPart)
+	result := ""
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			result += "."
+		}
+		result += string(c)
+	}
+	return result
+}
+
 func (s *payrollService) generatePayrollPDF(
 	payroll *model.Payroll,
 	employee *model.User,
 ) (*string, error) {
 	loc, _ := time.LoadLocation("Asia/Jakarta")
 	t := time.Now().In(loc)
-	dateNow := t.Format("2006-01-02 15:04:05")
+
+	var extra struct {
+		BPJSHealth float64 `json:"bpjs_health_rate"`
+		BPJSJHT    float64 `json:"bpjs_employment_jht_rate"`
+		BPJSJP     float64 `json:"bpjs_employment_jp_rate"`
+	}
+	_ = json.Unmarshal(payroll.AdditionalData, &extra)
+
+	period := payroll.CreatedAt.In(loc).Format("2006/01")
 
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(15, 15, 15)
 	pdf.AddPage()
 
-	// Title
-	pdf.SetFont("Arial", "B", 16)
-	pdf.Cell(0, 10, "Payroll Slip")
-	pdf.Ln(12)
+	// ── HEADER ──────────────────────────────────────────────
+	pdf.Image("assets/images/logo.jpg", 15, 10, 22, 0, false, "", 0, "")
 
-	// Employee info
-	pdf.SetFont("Arial", "", 12)
-	pdf.Cell(50, 8, "Employee Name")
-	pdf.Cell(5, 8, ":")
-	pdf.Cell(0, 8, employee.FullName)
-	pdf.Ln(8)
+	pdf.SetFont("Arial", "B", 11)
+	pdf.SetXY(40, 13)
+	pdf.Cell(60, 6, "PT. King Royal Sejahtera")
+	pdf.SetFont("Arial", "B", 22)
+	pdf.SetXY(100, 12)
+	pdf.CellFormat(95, 10, "Slip Gaji", "", 0, "R", false, 0, "")
 
-	pdf.Cell(50, 8, "Employee ID")
-	pdf.Cell(5, 8, ":")
-	pdf.Cell(0, 8, employee.ID)
-	pdf.Ln(8)
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetXY(40, 20)
+	pdf.Cell(60, 5, "Ahmad Yani No 134 Brebes")
+	pdf.SetXY(40, 25)
+	pdf.Cell(60, 5, "Brebes, Indonesia")
 
-	pdf.Cell(50, 8, "Payroll Date")
-	pdf.Cell(5, 8, ":")
-	pdf.Cell(0, 8, dateNow)
-	pdf.Ln(12)
+	// ── EMPLOYEE INFO ────────────────────────────────────────
+	pdf.SetDrawColor(0, 0, 0)
+	pdf.Line(15, 36, 195, 36)
 
-	// Salary details
-	pdf.SetFont("Arial", "B", 13)
-	pdf.Cell(0, 8, "Salary Detail")
-	pdf.Ln(10)
+	nameNIK := employee.FullName
+	deptJob := ""
+	joinedAt := "-"
+	bankInfo := "-"
 
-	pdf.SetFont("Arial", "", 12)
-
-	addMoneyRow := func(label string, value float64) {
-		pdf.Cell(70, 8, label)
-		pdf.Cell(10, 8, ":")
-		pdf.Cell(0, 8, fmt.Sprintf("Rp %.2f", value))
-		pdf.Ln(8)
+	if employee.Profile != nil {
+		if employee.Profile.EmployeeCode != nil {
+			nameNIK += " (" + *employee.Profile.EmployeeCode + ")"
+		}
+		parts := []string{}
+		if employee.Profile.Department != nil {
+			parts = append(parts, *employee.Profile.Department)
+		}
+		if employee.Profile.Position != nil {
+			parts = append(parts, *employee.Profile.Position)
+		}
+		if len(parts) > 0 {
+			deptJob = parts[0]
+			if len(parts) > 1 {
+				deptJob += " / " + parts[1]
+			}
+		}
+		if employee.Profile.JoinedAt != nil {
+			joinedAt = employee.Profile.JoinedAt.In(loc).Format("02 January 2006")
+		}
+		if employee.Profile.BankAccountNumber != nil {
+			bankInfo = *employee.Profile.BankAccountNumber + " (" + employee.FullName + ")"
+		}
 	}
 
-	addMoneyRow("Basic Salary", payroll.BasicSalary)
-	addMoneyRow("Position Allowance", payroll.PositionAllowance)
-	addMoneyRow("Other Allowance", payroll.OtherAllowance)
-	addMoneyRow("Overtime Rate", payroll.OvertimeRate)
+	pdf.SetFont("Arial", "", 9)
+	infoY := 39.0
+	rowH := 5.5
+	infoLeft := func(label, val string, y float64) {
+		pdf.SetXY(15, y)
+		pdf.CellFormat(42, rowH, label, "", 0, "L", false, 0, "")
+		pdf.SetXY(57, y)
+		pdf.CellFormat(65, rowH, val, "", 0, "L", false, 0, "")
+	}
+	infoLeft("Nama / NIK", nameNIK, infoY)
+	pdf.SetXY(130, infoY)
+	pdf.CellFormat(25, rowH, "Periode Gaji", "", 0, "L", false, 0, "")
+	pdf.SetXY(162, infoY)
+	pdf.CellFormat(33, rowH, period, "", 0, "L", false, 0, "")
 
-	pdf.Ln(4)
-	pdf.SetFont("Arial", "B", 12)
-	addMoneyRow("Net Salary", payroll.NetSalary)
+	infoLeft("Dept / Jabatan", deptJob, infoY+rowH)
+	infoLeft("Tgl Mulai Bekerja", joinedAt, infoY+rowH*2)
 
-	// Output dir
+	tableY := infoY + rowH*3 + 4
+	pdf.Line(15, tableY, 195, tableY)
+	tableY += 3
+
+	// ── INCOME / DEDUCTIONS TABLE ────────────────────────────
+	// Left col : label x=15..72, value x=72..100 (right-aligned)
+	// Divider  : x=101
+	// Right col: label x=103..160, value x=160..193 (right-aligned)
+	const (
+		lLblX   = 15.0
+		lLblW   = 57.0
+		lValX   = 72.0
+		lValW   = 28.0 // ends at 100
+		divLine = 101.0
+		rLblX   = 103.0
+		rLblW   = 57.0
+		rValX   = 160.0
+		rValW   = 33.0 // ends at 193
+		tblRowH = 6.5
+	)
+
+	// Header row
+	pdf.SetFillColor(230, 230, 230)
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetXY(15, tableY)
+	pdf.CellFormat(86, 7, "  Pendapatan", "1", 0, "L", true, 0, "")
+	pdf.SetXY(103, tableY)
+	pdf.CellFormat(92, 7, "  Potongan", "1", 0, "L", true, 0, "")
+	pdf.SetFillColor(255, 255, 255)
+	tableY += 8
+
+	type slipRow struct {
+		iLabel string
+		iVal   float64
+		dLabel string
+		dVal   float64
+	}
+	rows := []slipRow{
+		{"Gaji Pokok", payroll.BasicSalary, "Potongan Pinjaman Karyawan", payroll.LoanDeduction},
+		{"Lembur", payroll.OvertimeRate, "Potongan Absen", payroll.AttendanceDeduction},
+		{"Tunjangan Jabatan", payroll.PositionAllowance, "Potongan BPJS Kesehatan", extra.BPJSHealth},
+		{"Tunjangan Lain", payroll.OtherAllowance, "Potongan BPJS TK JHT", extra.BPJSJHT},
+		{"", 0, "Potongan BPJS TK JP", extra.BPJSJP},
+		{"", 0, "Potongan Pajak PPh21", payroll.IncomeTax},
+	}
+
+	startTableY := tableY
+	pdf.SetFont("Arial", "", 9)
+	for _, r := range rows {
+		if r.iLabel != "" {
+			pdf.SetXY(lLblX, tableY)
+			pdf.CellFormat(lLblW, tblRowH, r.iLabel, "", 0, "L", false, 0, "")
+			pdf.SetXY(lValX, tableY)
+			pdf.CellFormat(lValW, tblRowH, slipNum(r.iVal), "", 0, "R", false, 0, "")
+		}
+		pdf.SetXY(rLblX, tableY)
+		pdf.CellFormat(rLblW, tblRowH, r.dLabel, "", 0, "L", false, 0, "")
+		pdf.SetXY(rValX, tableY)
+		pdf.CellFormat(rValW, tblRowH, slipNum(r.dVal), "", 0, "R", false, 0, "")
+		tableY += tblRowH
+	}
+
+	// Vertical divider between columns
+	pdf.SetDrawColor(180, 180, 180)
+	pdf.Line(divLine, startTableY, divLine, tableY)
+
+	// Separator + total row
+	tableY += 1
+	pdf.SetDrawColor(0, 0, 0)
+	pdf.Line(15, tableY, 195, tableY)
+	tableY += 2
+
+	totalIncome := payroll.BasicSalary + payroll.PositionAllowance + payroll.OtherAllowance + payroll.OvertimeRate
+	totalDeduct := payroll.LoanDeduction + payroll.AttendanceDeduction + extra.BPJSHealth + extra.BPJSJHT + extra.BPJSJP + payroll.IncomeTax
+
+	pdf.SetFont("Arial", "B", 10)
+	pdf.SetXY(lLblX, tableY)
+	pdf.CellFormat(lLblW, 7, "Total Pendapatan", "", 0, "L", false, 0, "")
+	pdf.SetXY(lValX, tableY)
+	pdf.CellFormat(lValW, 7, slipNum(totalIncome), "", 0, "R", false, 0, "")
+	pdf.SetXY(rLblX, tableY)
+	pdf.CellFormat(rLblW, 7, "Total Potongan", "", 0, "L", false, 0, "")
+	pdf.SetXY(rValX, tableY)
+	pdf.CellFormat(rValW, 7, slipNum(totalDeduct), "", 0, "R", false, 0, "")
+	tableY += 10
+
+	// ── PAYMENT INFO + NET BOX ───────────────────────────────
+	netPenerimaan := totalIncome - totalDeduct
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetXY(15, tableY)
+	pdf.MultiCell(85, 5, "Pembayaran gaji telah dilakukan oleh perusahaan\nSecara transfer ke rekening karyawan\n"+bankInfo, "", "L", false)
+
+	boxX := 110.0
+	boxY := tableY
+	pdf.SetDrawColor(0, 0, 0)
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetXY(boxX, boxY)
+	pdf.CellFormat(80, 7, "Total Penerimaan Bulan Ini", "TLR", 0, "C", false, 0, "")
+	pdf.SetFont("Arial", "B", 20)
+	pdf.SetXY(boxX, boxY+7)
+	pdf.CellFormat(80, 14, slipNum(netPenerimaan), "LRB", 0, "C", false, 0, "")
+
+	// ── FOOTER ───────────────────────────────────────────────
+	footerY := tableY + 30
+	fX := 130.0
+	fW := 65.0 // ends at 195
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetXY(fX, footerY)
+	pdf.CellFormat(fW, 5, "Brebes, "+t.Format("02 January 2006"), "", 0, "R", false, 0, "")
+	pdf.SetXY(fX, footerY+6)
+	pdf.CellFormat(fW, 5, "HR-Chief Accounting", "", 0, "R", false, 0, "")
+	pdf.Image("assets/images/ttd.png", fX+fW-32, footerY+12, 30, 0, false, "", 0, "")
+	pdf.SetXY(fX, footerY+26)
+	pdf.CellFormat(fW, 5, "Rizki Aenun Nisa, S.M", "", 0, "R", false, 0, "")
+
+	// ── OUTPUT ───────────────────────────────────────────────
 	dir := "files/payrolls"
 	yearMonth := t.Format("2006-01")
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -112,11 +298,16 @@ func (s *payrollService) generatePayrollPDF(
 		return nil, err
 	}
 
-	return &fullPath, nil
+	urlPath := dir + "/" + filename
+	return &urlPath, nil
 }
 
 func (s *payrollService) GetAll(ctx context.Context) ([]model.Payroll, error) {
 	return s.payrollRepo.GetAll(ctx)
+}
+
+func (s *payrollService) GetMyPayrolls(ctx context.Context, userID string) ([]model.Payroll, error) {
+	return s.payrollRepo.GetByEmployeeID(ctx, userID)
 }
 
 func (s *payrollService) GetByID(ctx context.Context, id string) (*model.Payroll, error) {
@@ -179,6 +370,7 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 		return nil, err
 	}
 
+	gross := basicSalary + positionAllowance + otherAllowance + overtimeRate
 	payroll := &model.Payroll{
 		EmployeeID:        employee.ID,
 		BasicSalary:       basicSalary,
@@ -186,7 +378,8 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 		OtherAllowance:    otherAllowance,
 		OvertimeRate:      overtimeRate,
 		Status:            model.PayrollStatusUnsent,
-		NetSalary:         basicSalary + positionAllowance + otherAllowance + overtimeRate,
+		GrossSalary:       gross,
+		NetSalary:         gross - bpjsDeduction(datatypes.JSON(dataBytes)),
 		AdditionalData:    datatypes.JSON(dataBytes),
 	}
 
@@ -207,6 +400,7 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 		payroll.ID = existing.ID
 		payroll.Status = existing.Status
 		payroll.SentAt = existing.SentAt
+		payroll.CreatedAt = existing.CreatedAt
 
 		saved, err = s.payrollRepo.Update(ctx, payroll)
 		if err != nil {
@@ -234,7 +428,7 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 }
 
 func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, error) {
-	employees, err := s.userRepo.GetAll(ctx, true)
+	employees, err := s.userRepo.GetAll(ctx, true, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -308,6 +502,7 @@ func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, erro
 			otherAllowance = *employee.Profile.OtherAllowance
 		}
 
+		empGross := basicSalary + positionAllowance + otherAllowance + overtimeRate
 		payroll := &model.Payroll{
 			EmployeeID:        employee.ID,
 			BasicSalary:       basicSalary,
@@ -315,7 +510,8 @@ func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, erro
 			OtherAllowance:    otherAllowance,
 			OvertimeRate:      overtimeRate,
 			Status:            model.PayrollStatusUnsent,
-			NetSalary:         basicSalary + positionAllowance + otherAllowance + overtimeRate,
+			GrossSalary:       empGross,
+			NetSalary:         empGross - bpjsDeduction(additionalJSON),
 			AdditionalData:    additionalJSON,
 		}
 
@@ -418,9 +614,10 @@ func (s *payrollService) Update(ctx context.Context, id string, payload request.
 		}
 	}
 
-	// Recalculate net salary after updates.
+	// Recalculate gross and net salary after updates.
 	gross := existing.BasicSalary + existing.PositionAllowance + existing.OtherAllowance + existing.OvertimeRate
-	existing.NetSalary = gross - existing.LoanDeduction - existing.AttendanceDeduction - existing.IncomeTax
+	existing.GrossSalary = gross
+	existing.NetSalary = gross - existing.LoanDeduction - existing.AttendanceDeduction - existing.IncomeTax - bpjsDeduction(existing.AdditionalData)
 
 	updated, err := s.payrollRepo.Update(ctx, existing)
 	if err != nil {
@@ -457,20 +654,22 @@ func (s *payrollService) SendPayroll(ctx context.Context, id string) (*model.Pay
 		return nil, common.BadRequestError("User email is empty")
 	}
 
-	if payroll.PDFPath == nil || *payroll.PDFPath == "" {
-		pdfPath, err := s.generatePayrollPDF(payroll, employee)
-		if err != nil {
-			return nil, err
-		}
-
-		payroll.PDFPath = pdfPath
-		payroll, err = s.payrollRepo.Update(ctx, payroll)
-		if err != nil {
-			return nil, err
-		}
+	if !strings.Contains(employee.Email, "@") {
+		return nil, common.BadRequestError("User email is not valid, please update user email first")
 	}
 
-	payrollUrl := fmt.Sprintf("%s/%s", config.GetEnv().ServerBaseURL, *payroll.PDFPath)
+	pdfPath, err := s.generatePayrollPDF(payroll, employee)
+	if err != nil {
+		return nil, err
+	}
+	payroll.PDFPath = pdfPath
+	payroll, err = s.payrollRepo.Update(ctx, payroll)
+	if err != nil {
+		return nil, err
+	}
+
+	cleanPDFPath := strings.ReplaceAll(*payroll.PDFPath, "\\", "/")
+	payrollUrl := fmt.Sprintf("%s/%s", config.GetEnv().ServerBaseURL, cleanPDFPath)
 	err = utils.SendEmail(utils.EmailParams{
 		FromName:   config.GetEnv().SMTPFromName,
 		FromEmail:  config.GetEnv().SMTPFromEmail,

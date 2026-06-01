@@ -7,6 +7,7 @@ import (
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/service"
+	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,6 +17,19 @@ type PayrollHandler struct {
 
 func NewPayrollHandler(service service.PayrollService) *PayrollHandler {
 	return &PayrollHandler{service: service}
+}
+
+func (h *PayrollHandler) GetMyPayrolls(c *gin.Context) {
+	userID, ok := utils.GetCurrentUserID(c)
+	if !ok {
+		return
+	}
+	payrolls, err := h.service.GetMyPayrolls(c.Request.Context(), userID)
+	if err != nil {
+		common.ErrorHandler(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, common.SuccessResponse(response.ToPayrollListResponse(payrolls)))
 }
 
 func (h *PayrollHandler) GetAll(c *gin.Context) {

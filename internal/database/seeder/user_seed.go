@@ -12,21 +12,21 @@ import (
 func SeedUsers() {
 	db := config.GetDB()
 
-	adminPassword, err := utils.HashPassword("Admin123")
+	adminPassword, err := utils.HashPassword("admin")
 	if err != nil {
 		log.Printf("Failed hash password for admin@kingroyal.com: %v\n", err)
 		return
 	}
 
-	userPassword, err := utils.HashPassword("User123")
+	userPassword, err := utils.HashPassword("user")
 	if err != nil {
 		log.Printf("Failed hash password for user@kingroyal.com: %v\n", err)
 		return
 	}
 
 	users := []model.User{
-		{FullName: "Admin", Email: "admin@kingroyal.com", Password: adminPassword, Role: "admin"},
-		{FullName: "User", Email: "user@kingroyal.com", Password: userPassword, Role: "user"},
+		{FullName: "Admin", Email: "admin", Password: adminPassword, Role: "admin"},
+		{FullName: "User", Email: "user", Password: userPassword, Role: "user"},
 	}
 
 	for _, user := range users {

@@ -32,8 +32,16 @@ type ActionSuccessResponse struct {
 	ID string `json:"id"`
 }
 
+type DeleteSuccessResponse struct {
+	DeletedCount int `json:"deleted_count"`
+}
+
 func ToSuccessResponse(id string) ActionSuccessResponse {
 	return ActionSuccessResponse{ID: id}
 }
 
-
+func ToDeleteSuccessResponse(count int) DeleteSuccessResponse {
+	return DeleteSuccessResponse{
+		DeletedCount: count,
+	}
+}

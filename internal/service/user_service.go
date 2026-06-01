@@ -2,8 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"errors"
+	"log"
+	"math/big"
 	"time"
 
+	"github.com/afifudin23/absensi-king-royal-api/internal/config"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/response/common"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
@@ -13,12 +18,14 @@ import (
 )
 
 type UserService interface {
-	GetAll(ctx context.Context) ([]model.User, error)
+	GetAll(ctx context.Context, filter *repository.UserFilter) ([]model.User, error)
+	ResetPassword(ctx context.Context, adminID, targetUserID, newPassword string) error
 	Create(ctx context.Context, payload request.UserCreateRequest) (*model.User, error)
 	GetByID(ctx context.Context, userID string) (*model.User, error)
 	Update(ctx context.Context, userID string, payload request.UserUpdateRequest) (*model.User, error)
 	UpdateProfile(ctx context.Context, userID string, payload request.UserUpdateProfileRequest) (*model.User, error)
 	Delete(ctx context.Context, userID string) error
+	ChangePassword(ctx context.Context, userID string, payload request.ChangePasswordRequest) error
 }
 
 type userService struct {
@@ -30,12 +37,43 @@ func NewUserService(userRepo repository.UserRepository, fileRepo repository.File
 	return &userService{userRepo: userRepo, fileRepo: fileRepo}
 }
 
-func (s *userService) GetAll(ctx context.Context) ([]model.User, error) {
-	return s.userRepo.GetAll(ctx, false)
+func (s *userService) GetAll(ctx context.Context, filter *repository.UserFilter) ([]model.User, error) {
+	return s.userRepo.GetAll(ctx, true, filter)
+}
+
+func (s *userService) ResetPassword(ctx context.Context, adminID, targetUserID, newPassword string) error {
+	if adminID == targetUserID {
+		return common.BadRequestError("Cannot reset your own password via this endpoint")
+	}
+	user, err := s.userRepo.GetByID(ctx, targetUserID, false)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) || isNotFoundError(err) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+	hashed, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	user.Password = hashed
+	return s.userRepo.Update(ctx, user, nil)
+}
+
+func generatePassword(length int) string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	result := make([]byte, length)
+	for i := range result {
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		result[i] = chars[n.Int64()]
+	}
+	return string(result)
 }
 
 func (s *userService) Create(ctx context.Context, payload request.UserCreateRequest) (*model.User, error) {
-	hashedPassword, err := utils.HashPassword(payload.Password)
+	rawPassword := generatePassword(8)
+
+	hashedPassword, err := utils.HashPassword(rawPassword)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +91,7 @@ func (s *userService) Create(ctx context.Context, payload request.UserCreateRequ
 		EmployeeCode:      payload.EmployeeCode,
 		EmploymentStatus:  payload.EmploymentStatus,
 		BirthPlace:        payload.BirthPlace,
-		BirthDate:         payload.BirthDate,
+		BirthDate:         parseDateString(payload.BirthDate),
 		Gender:            payload.Gender,
 		Address:           payload.Address,
 		PhoneNumber:       payload.PhoneNumber,
@@ -95,11 +133,35 @@ func (s *userService) Create(ctx context.Context, payload request.UserCreateRequ
 		return nil, err
 	}
 
+	go func() {
+		env := config.GetEnv()
+		err := utils.SendEmail(utils.EmailParams{
+			FromName:   env.SMTPFromName,
+			FromEmail:  env.SMTPFromEmail,
+			Password:   env.SMTPPassword,
+			Host:       env.SMTPHost,
+			Port:       env.SMTPPort,
+			Encryption: utils.EncryptionType(env.SMTPEncryption),
+			ToName:     user.FullName,
+			ToEmail:    user.Email,
+			Subject:    "Selamat Datang - Akun Absensi King Royal",
+			Template:   "templates/welcome_email.html",
+			Data: map[string]any{
+				"name":     user.FullName,
+				"email":    user.Email,
+				"password": rawPassword,
+			},
+		})
+		if err != nil {
+			log.Printf("failed to send welcome email to %s: %v", user.Email, err)
+		}
+	}()
+
 	return user, nil
 }
 
 func (s *userService) GetByID(ctx context.Context, userID string) (*model.User, error) {
-	user, err := s.userRepo.GetByID(ctx, userID, false)
+	user, err := s.userRepo.GetByID(ctx, userID, true)
 	if err != nil {
 		if isNotFoundError(err) {
 			return nil, ErrUserNotFound
@@ -121,7 +183,10 @@ func (s *userService) Update(ctx context.Context, userID string, payload request
 	profile := ensureUserProfile(user)
 	applyUserUpdateRequest(user, profile, payload)
 
-	if payload.ProfilePictureID != nil {
+	if payload.ClearProfilePicture != nil && *payload.ClearProfilePicture {
+		profile.ProfilePictureID = nil
+		profile.ProfilePictureURL = nil
+	} else if payload.ProfilePictureID != nil {
 		if s.fileRepo == nil {
 			return nil, common.InternalServerError()
 		}
@@ -157,7 +222,7 @@ func (s *userService) Update(ctx context.Context, userID string, payload request
 }
 
 func (s *userService) UpdateProfile(ctx context.Context, userID string, payload request.UserUpdateProfileRequest) (*model.User, error) {
-	user, err := s.userRepo.GetByID(ctx, userID, false)
+	user, err := s.userRepo.GetByID(ctx, userID, true)
 	if err != nil {
 		if isNotFoundError(err) {
 			return nil, ErrUserNotFound
@@ -223,6 +288,34 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 	return s.userRepo.Delete(ctx, userID)
 }
 
+func (s *userService) ChangePassword(ctx context.Context, userID string, payload request.ChangePasswordRequest) error {
+	// Pastikan new_password dan confirm_password sama
+	if payload.NewPassword != payload.ConfirmPassword {
+		return common.BadRequestError("New password and confirm password do not match")
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID, false)
+	if err != nil {
+		if isNotFoundError(err) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
+	// Verifikasi password lama sebelum ganti
+	if !utils.CheckPassword(payload.CurrentPassword, user.Password) {
+		return common.BadRequestError("Current password is incorrect")
+	}
+
+	hashedPassword, err := utils.HashPassword(payload.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	user.Password = hashedPassword
+	return s.userRepo.Update(ctx, user, nil)
+}
+
 func ensureUserProfile(user *model.User) *model.UserProfile {
 	if user.Profile == nil {
 		user.Profile = &model.UserProfile{UserID: user.ID}
@@ -234,8 +327,14 @@ func applyUserUpdateRequest(existing *model.User, profile *model.UserProfile, pa
 	if payload.FullName != nil {
 		existing.FullName = *payload.FullName
 	}
+	if payload.Email != nil {
+		existing.Email = *payload.Email
+	}
 	if payload.Role != nil {
 		existing.Role = model.UserRole(*payload.Role)
+	}
+	if payload.JoinedAt != nil {
+		profile.JoinedAt = parseDateString(payload.JoinedAt)
 	}
 
 	applyUserUpdate(profile,
@@ -283,12 +382,24 @@ func applyUserUpdateProfileRequest(existing *model.User, profile *model.UserProf
 	)
 }
 
+func parseDateString(s *string) *time.Time {
+	if s == nil || *s == "" {
+		return nil
+	}
+	for _, layout := range []string{"2006-01-02", time.RFC3339} {
+		if t, err := time.Parse(layout, *s); err == nil {
+			return &t
+		}
+	}
+	return nil
+}
+
 func applyUserUpdate(
 	profile *model.UserProfile,
 	employeeCode *string,
 	employmentStatus *model.UserEmploymentStatus,
 	birthPlace *string,
-	birthDate *time.Time,
+	birthDate *string,
 	gender *model.UserGender,
 	address *string,
 	phoneNumber *string,
@@ -310,7 +421,7 @@ func applyUserUpdate(
 		profile.BirthPlace = birthPlace
 	}
 	if birthDate != nil {
-		profile.BirthDate = birthDate
+		profile.BirthDate = parseDateString(birthDate)
 	}
 	if gender != nil {
 		profile.Gender = gender

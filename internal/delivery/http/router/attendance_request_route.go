@@ -20,12 +20,12 @@ func registerAttendanceRequestRoutes(rg *gin.RouterGroup) {
 
 	attendanceRequest.Use(middleware.AuthMiddleware())
 	{
-		attendanceRequest.GET("", attendanceRequestHandler.GetAll)
+		attendanceRequest.GET("", middleware.AdminOnly(), attendanceRequestHandler.GetAll)
 		attendanceRequest.POST("", attendanceRequestHandler.Create)
+		attendanceRequest.DELETE("", attendanceRequestHandler.Delete)
 		attendanceRequest.GET("/me", attendanceRequestHandler.GetByUserID)
 		attendanceRequest.GET("/:attendance_request_id", attendanceRequestHandler.GetByID)
 		attendanceRequest.PUT("/:attendance_request_id", attendanceRequestHandler.Update)
 		attendanceRequest.PATCH("/:attendance_request_id/status", middleware.AdminOnly(), attendanceRequestHandler.UpdateStatus)
-		attendanceRequest.DELETE("/:attendance_request_id", attendanceRequestHandler.Delete)
 	}
 }

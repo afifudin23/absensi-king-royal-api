@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type PayrollSetting struct {
 	ID         string    `gorm:"column:id;type:char(36);primaryKey;default:(UUID())"`
@@ -10,6 +15,13 @@ type PayrollSetting struct {
 	IsACtive   bool      `gorm:"column:is_active;type:boolean;not null;default:true"`
 	CreatedAt  time.Time `gorm:"column:created_at"`
 	UpdatedAt  time.Time `gorm:"column:updated_at"`
+}
+
+func (ps *PayrollSetting) BeforeCreate(tx *gorm.DB) error {
+	if ps.ID == "" {
+		ps.ID = uuid.NewString()
+	}
+	return nil
 }
 
 func (PayrollSetting) TableName() string {

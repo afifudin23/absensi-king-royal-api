@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type UserGender string
 type UserEmploymentStatus string
@@ -41,6 +46,13 @@ type UserProfile struct {
 	JoinedAt  *time.Time `gorm:"column:joined_at;type:timestamp;null;default:null"`
 	CreatedAt time.Time  `gorm:"column:created_at;type:timestamp;not null"`
 	UpdatedAt time.Time  `gorm:"column:updated_at;type:timestamp;not null"`
+}
+
+func (up *UserProfile) BeforeCreate(tx *gorm.DB) error {
+	if up.ID == "" {
+		up.ID = uuid.NewString()
+	}
+	return nil
 }
 
 func (UserProfile) TableName() string {

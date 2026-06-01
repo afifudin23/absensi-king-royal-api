@@ -23,9 +23,11 @@ func registerUserRouter(rg *gin.RouterGroup) {
 		users.GET("", userHandler.GetAllUsers)
 		users.GET("/me", userHandler.GetMyProfile)
 		users.PUT("/me", userHandler.UpdateMyProfile)
+		users.PUT("/me/password", userHandler.ChangePassword)
 		users.POST("", userHandler.CreateUser)
 		users.GET("/:user_id", userHandler.GetUserByID)
 		users.PUT("/:user_id", userHandler.UpdateUser)
 		users.DELETE("/:user_id", userHandler.DeleteUser)
+		users.POST("/:user_id/reset-password", middleware.AdminOnly(), userHandler.ResetUserPassword)
 	}
 }

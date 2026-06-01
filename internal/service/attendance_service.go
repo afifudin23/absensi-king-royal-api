@@ -12,11 +12,43 @@ import (
 	"gorm.io/gorm"
 )
 
+type AttendanceRecapDaily struct {
+	AttendanceID    string                 `json:"attendance_id"`
+	Date            string                 `json:"date"`
+	Status          model.AttendanceStatus `json:"status"`
+	CheckInAt       *string                `json:"check_in_at"`
+	CheckOutAt      *string                `json:"check_out_at"`
+	OvertimeHours   *int                   `json:"overtime_hours"`
+	Note            *string                `json:"note"`
+	CheckInFileID   *string                `json:"check_in_file_id"`
+	CheckOutFileID  *string                `json:"check_out_file_id"`
+	Source          model.AttendanceSource `json:"source"`
+	CheckInFileURL  *string                `json:"check_in_file_url"`
+	CheckOutFileURL *string                `json:"check_out_file_url"`
+	EvidenceFileURL *string                `json:"evidence_file_url"`
+}
+
+type AttendanceRecapData struct {
+	UserID             string                 `json:"user_id"`
+	EmployeeName       string                 `json:"employee_name"`
+	Month              int                    `json:"month"`
+	Year               int                    `json:"year"`
+	TotalPresent       int                    `json:"total_present"`
+	TotalOff           int                    `json:"total_off"`
+	TotalSick          int                    `json:"total_sick"`
+	TotalExtraOff      int                    `json:"total_extra_off"`
+	TotalAbsent        int                    `json:"total_absent"`
+	TotalLeave         int                    `json:"total_leave"`
+	TotalOvertimeHours int                    `json:"total_overtime_hours"`
+	DailyDetails       []AttendanceRecapDaily `json:"daily_details"`
+}
+
 type AttendanceService interface {
 	CheckIn(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error)
 	CheckOut(ctx context.Context, userID string, payload request.AttendanceRequest) (*model.Attendance, error)
-	GetLogs(ctx context.Context, userID string) ([]model.Attendance, error)
+	GetLogs(ctx context.Context, userID string, startDate, endDate *time.Time) ([]model.Attendance, error)
 	Update(ctx context.Context, updaterID string, id string, payload request.AttendanceUpdateRequest) (*model.Attendance, error)
+	GetRecap(ctx context.Context, month, year int) ([]AttendanceRecapData, error)
 }
 
 type attendanceService struct {
@@ -120,6 +152,10 @@ func (s *attendanceService) CheckOut(ctx context.Context, userID string, payload
 		return nil, common.BadRequestError("You have already checked out today")
 	}
 
+	if !now.After(*attendance.CheckInAt) {
+		return nil, common.BadRequestError("Check-out time must be after check-in time")
+	}
+
 	attendance.Status = model.AttendanceStatusPresent
 	attendance.CheckOutAt = &now
 	attendance.CheckOutFileID = &payload.FileID
@@ -132,8 +168,80 @@ func (s *attendanceService) CheckOut(ctx context.Context, userID string, payload
 	return attendance, nil
 }
 
-func (s *attendanceService) GetLogs(ctx context.Context, userID string) ([]model.Attendance, error) {
-	return s.attendanceRepo.GetLogsByUserID(ctx, userID)
+func (s *attendanceService) GetLogs(ctx context.Context, userID string, startDate, endDate *time.Time) ([]model.Attendance, error) {
+	return s.attendanceRepo.GetLogsByUserID(ctx, userID, startDate, endDate)
+}
+
+func (s *attendanceService) GetRecap(ctx context.Context, month, year int) ([]AttendanceRecapData, error) {
+	rows, err := s.attendanceRepo.GetByMonthWithUser(ctx, month, year)
+	if err != nil {
+		return nil, err
+	}
+
+	grouped := map[string]*AttendanceRecapData{}
+	order := []string{}
+
+	for _, row := range rows {
+		d, exists := grouped[row.UserID]
+		if !exists {
+			d = &AttendanceRecapData{
+				UserID:       row.UserID,
+				EmployeeName: row.EmployeeName,
+				Month:        month,
+				Year:         year,
+			}
+			grouped[row.UserID] = d
+			order = append(order, row.UserID)
+		}
+
+		switch row.Status {
+		case model.AttendanceStatusPresent:
+			d.TotalPresent++
+		case model.AttendanceStatusOff:
+			d.TotalOff++
+		case model.AttendanceStatusSick:
+			d.TotalSick++
+		case model.AttendanceStatusExtraOff:
+			d.TotalExtraOff++
+		case model.AttendanceStatusAbsent:
+			d.TotalAbsent++
+		case model.AttendanceStatusLeave:
+			d.TotalLeave++
+		}
+
+		if row.OvertimeHours != nil {
+			d.TotalOvertimeHours += *row.OvertimeHours
+		}
+
+		daily := AttendanceRecapDaily{
+			AttendanceID:    row.ID,
+			Date:            row.Date.Format("2006-01-02"),
+			Status:          row.Status,
+			OvertimeHours:   row.OvertimeHours,
+			Note:            row.Note,
+			CheckInFileID:   row.CheckInFileID,
+			CheckOutFileID:  row.CheckOutFileID,
+			Source:          row.Source,
+			CheckInFileURL:  row.CheckInFileURL,
+			CheckOutFileURL: row.CheckOutFileURL,
+			EvidenceFileURL: row.EvidenceFileURL,
+		}
+		if row.CheckInAt != nil {
+			v := row.CheckInAt.Format("15:04")
+			daily.CheckInAt = &v
+		}
+		if row.CheckOutAt != nil {
+			v := row.CheckOutAt.Format("15:04")
+			daily.CheckOutAt = &v
+		}
+		d.DailyDetails = append(d.DailyDetails, daily)
+	}
+
+	result := make([]AttendanceRecapData, 0, len(order))
+	for _, userID := range order {
+		result = append(result, *grouped[userID])
+	}
+	return result, nil
 }
 
 func (s *attendanceService) Update(ctx context.Context, updaterID string, id string, payload request.AttendanceUpdateRequest) (*model.Attendance, error) {
@@ -166,6 +274,20 @@ func (s *attendanceService) Update(ctx context.Context, updaterID string, id str
 	}
 	if payload.Note != nil {
 		existing.Note = payload.Note
+	}
+	if payload.OvertimeHours != nil {
+		existing.OvertimeHours = payload.OvertimeHours
+	}
+	if payload.EvidenceFileID != nil {
+		// Validasi file harus ada dan milik sistem (bukan user tertentu)
+		_, err := s.fileRepo.GetByID(ctx, *payload.EvidenceFileID)
+		if err != nil {
+			if isNotFoundError(err) {
+				return nil, common.BadRequestError("Invalid evidence_file_id")
+			}
+			return nil, err
+		}
+		existing.EvidenceFileID = payload.EvidenceFileID
 	}
 	existing.Source = model.AttendanceSourceAdminEdit
 	existing.UpdatedBy = &updaterID

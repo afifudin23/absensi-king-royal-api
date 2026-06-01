@@ -18,6 +18,9 @@ type AttendanceResponse struct {
 	CheckOutFileID  *string                `json:"check_out_file_id"`
 	CheckOutFileURL *string                `json:"check_out_file_url"`
 	Note            *string                `json:"note"`
+	OvertimeHours   *int                   `json:"overtime_hours"`
+	EvidenceFileID  *string                `json:"evidence_file_id"`
+	EvidenceFileURL *string                `json:"evidence_file_url"`
 	Source          model.AttendanceSource `json:"source"`
 	UpdatedBy       *string                `json:"updated_by"`
 	CreatedAt       time.Time              `json:"created_at"`
@@ -37,6 +40,9 @@ func ToAttendanceResponse(attendance model.Attendance) AttendanceResponse {
 		CheckOutFileID:  attendance.CheckOutFileID,
 		CheckOutFileURL: toFileURLPtr(attendance.CheckOutFile),
 		Note:            attendance.Note,
+		OvertimeHours:   attendance.OvertimeHours,
+		EvidenceFileID:  attendance.EvidenceFileID,
+		EvidenceFileURL: toFileURLPtr(attendance.EvidenceFile),
 		Source:          attendance.Source,
 		UpdatedBy:       attendance.UpdatedBy,
 		CreatedAt:       attendance.CreatedAt,

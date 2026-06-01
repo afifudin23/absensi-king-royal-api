@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type FileType string
 
@@ -25,6 +30,13 @@ type File struct {
 	Type       FileType  `gorm:"column:type;type:enum('check_in', 'check_out', 'profile_picture', 'sick', 'extra_off', 'overtime', 'leave');not null"`
 	CreatedAt  time.Time `gorm:"column:created_at"`
 	UpdatedAt  time.Time `gorm:"column:updated_at"`
+}
+
+func (f *File) BeforeCreate(tx *gorm.DB) error {
+	if f.ID == "" {
+		f.ID = uuid.NewString()
+	}
+	return nil
 }
 
 func (File) TableName() string {

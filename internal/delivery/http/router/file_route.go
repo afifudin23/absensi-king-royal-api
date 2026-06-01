@@ -12,8 +12,10 @@ import (
 func registerFileRoutes(rg *gin.RouterGroup) {
 	db := config.GetDB()
 	fileRepo := repository.NewFileRepository(db)
+	userRepo := repository.NewUserRepository(db)
 	fileService := service.NewFileService(fileRepo, config.GetEnv().ServerBaseURL)
-	fileHandler := handler.NewFileHandler(fileService)
+	userService := service.NewUserService(userRepo, fileRepo)
+	fileHandler := handler.NewFileHandler(fileService, userService)
 	router := rg.Group("/files")
 
 	router.Use(middleware.AuthMiddleware())

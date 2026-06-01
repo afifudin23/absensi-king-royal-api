@@ -2,21 +2,20 @@ package request
 
 import (
 	"strings"
-	"time"
 
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
 )
 
 type UserCreateRequest struct {
 	FullName string         `json:"full_name" binding:"required,min=3,max=255"`
-	Email    string         `json:"email" binding:"required,email,max=255"`
-	Password string         `json:"password" binding:"required,min=8,max=100"`
+	// Email string `json:"email" binding:"required,email,max=255"` // TODO: re-enable email validation for production
+	Email    string         `json:"email" binding:"required,max=255"`
 	Role     model.UserRole `json:"role" binding:"required,oneof=admin user"`
 
 	EmployeeCode      *string                     `json:"employee_code,omitempty" binding:"omitempty,max=100"`
 	EmploymentStatus  *model.UserEmploymentStatus `json:"employment_status,omitempty" binding:"omitempty,max=100"`
 	BirthPlace        *string                     `json:"birth_place,omitempty" binding:"omitempty,max=255"`
-	BirthDate         *time.Time                  `json:"birth_date,omitempty" binding:"omitempty"`
+	BirthDate         *string                     `json:"birth_date,omitempty" binding:"omitempty"`
 	Gender            *model.UserGender           `json:"gender,omitempty" binding:"omitempty,oneof=male female other"`
 	Address           *string                     `json:"address,omitempty" binding:"omitempty,max=500"`
 	PhoneNumber       *string                     `json:"phone_number,omitempty" binding:"omitempty,max=50"`
@@ -44,12 +43,14 @@ func (r *UserCreateRequest) Normalize() {
 
 type UserUpdateRequest struct {
 	FullName *string         `json:"full_name" binding:"omitempty,min=3,max=255"`
+	// Email *string `json:"email" binding:"omitempty,email,max=255"` // TODO: re-enable email validation for production
+	Email    *string         `json:"email" binding:"omitempty,max=255"`
 	Role     *model.UserRole `json:"role" binding:"omitempty,oneof=admin user"`
 
 	EmployeeCode      *string                     `json:"employee_code,omitempty" binding:"omitempty,max=100"`
 	EmploymentStatus  *model.UserEmploymentStatus `json:"employment_status,omitempty" binding:"omitempty,max=100"`
 	BirthPlace        *string                     `json:"birth_place,omitempty" binding:"omitempty,max=255"`
-	BirthDate         *time.Time                  `json:"birth_date,omitempty" binding:"omitempty"`
+	BirthDate         *string                     `json:"birth_date,omitempty" binding:"omitempty"`
 	Gender            *model.UserGender           `json:"gender,omitempty" binding:"omitempty,oneof=male female other"`
 	Address           *string                     `json:"address,omitempty" binding:"omitempty,max=500"`
 	PhoneNumber       *string                     `json:"phone_number,omitempty" binding:"omitempty,max=50"`
@@ -59,11 +60,14 @@ type UserUpdateRequest struct {
 	BasicSalary       *float64                    `json:"basic_salary,omitempty" binding:"omitempty"`
 	PositionAllowance *float64                    `json:"position_allowance,omitempty" binding:"omitempty"`
 	OtherAllowance    *float64                    `json:"other_allowance,omitempty" binding:"omitempty"`
-	ProfilePictureID  *string                     `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
+	JoinedAt            *string `json:"joined_at,omitempty" binding:"omitempty"`
+	ProfilePictureID    *string `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
+	ClearProfilePicture *bool   `json:"clear_profile_picture,omitempty"`
 }
 
 func (r *UserUpdateRequest) Normalize() {
 	normalizeOptionalString(&r.FullName, false)
+	normalizeOptionalString(&r.Email, true)
 	normalizeOptionalString(&r.EmployeeCode, false)
 	normalizeOptionalString(&r.BirthPlace, false)
 	normalizeOptionalString(&r.Address, false)
@@ -76,21 +80,23 @@ func (r *UserUpdateRequest) Normalize() {
 
 type UserUpdateProfileRequest struct {
 	FullName *string         `json:"full_name" binding:"omitempty,min=3,max=255"`
-	Email    *string         `json:"email" binding:"omitempty,email,max=255"`
+	// Email *string `json:"email" binding:"omitempty,email,max=255"` // TODO: re-enable email validation for production
+	Email    *string         `json:"email" binding:"omitempty,max=255"`
 	Password *string         `json:"password" binding:"omitempty,min=8,max=100"`
 	Role     *model.UserRole `json:"role" binding:"omitempty,oneof=admin user"`
 
 	EmployeeCode      *string                     `json:"employee_code,omitempty" binding:"omitempty,max=100"`
 	EmploymentStatus  *model.UserEmploymentStatus `json:"employment_status,omitempty" binding:"omitempty,max=100"`
 	BirthPlace        *string                     `json:"birth_place,omitempty" binding:"omitempty,max=255"`
-	BirthDate         *time.Time                  `json:"birth_date,omitempty" binding:"omitempty"`
+	BirthDate         *string                     `json:"birth_date,omitempty" binding:"omitempty"`
 	Gender            *model.UserGender           `json:"gender,omitempty" binding:"omitempty,oneof=male female other"`
 	Address           *string                     `json:"address,omitempty" binding:"omitempty,max=500"`
 	PhoneNumber       *string                     `json:"phone_number,omitempty" binding:"omitempty,max=50"`
 	Position          *string                     `json:"position,omitempty" binding:"omitempty,max=100"`
 	Department        *string                     `json:"department,omitempty" binding:"omitempty,max=100"`
 	BankAccountNumber *string                     `json:"bank_account_number,omitempty" binding:"omitempty,max=100"`
-	ProfilePictureID  *string                     `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
+	ProfilePictureID       *string `json:"profile_picture_id,omitempty" binding:"omitempty,uuid"`
+	ClearProfilePicture    *bool   `json:"clear_profile_picture,omitempty"`
 }
 
 func (r *UserUpdateProfileRequest) Normalize() {
@@ -105,6 +111,18 @@ func (r *UserUpdateProfileRequest) Normalize() {
 	normalizeOptionalString(&r.Department, false)
 	normalizeOptionalString(&r.BankAccountNumber, false)
 	normalizeOptionalString(&r.ProfilePictureID, false)
+}
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	// NewPassword string `json:"new_password" binding:"required,min=8,max=100"` // TODO: re-enable min=8 for production
+	NewPassword string `json:"new_password" binding:"required,min=3,max=100"`
+	ConfirmPassword string `json:"confirm_password" binding:"required"`
+}
+
+type AdminResetPasswordRequest struct {
+	// NewPassword string `json:"new_password" binding:"required,min=8,max=100"` // TODO: re-enable min=8 for production
+	NewPassword string `json:"new_password" binding:"required,min=3,max=100"`
 }
 
 func normalizeOptionalString(field **string, toLower bool) {

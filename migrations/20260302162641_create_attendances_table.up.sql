@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS attendances (
     check_out_file_id CHAR(36) NULL,
     note TEXT NULL,
     source ENUM('self_service', 'admin_edit', 'approved_request', 'system') NOT NULL DEFAULT 'self_service',
+    overtime_hours INT NULL, 
     updated_by CHAR(36) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

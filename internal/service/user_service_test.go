@@ -8,12 +8,13 @@ import (
 
 	"github.com/afifudin23/absensi-king-royal-api/internal/delivery/http/request"
 	"github.com/afifudin23/absensi-king-royal-api/internal/model"
+	"github.com/afifudin23/absensi-king-royal-api/internal/repository"
 	"github.com/afifudin23/absensi-king-royal-api/pkg/utils"
 	"gorm.io/gorm"
 )
 
 type mockUserRepo struct {
-	getAllFn     func(ctx context.Context) ([]model.User, error)
+	getAllFn     func(ctx context.Context, filter *repository.UserFilter) ([]model.User, error)
 	getByIDFn    func(ctx context.Context, id string) (*model.User, error)
 	getByEmailFn func(ctx context.Context, email string) (*model.User, error)
 	createFn     func(ctx context.Context, user *model.User, profile *model.UserProfile) error
@@ -33,9 +34,9 @@ type mockUserRepo struct {
 	lastDeleted        string
 }
 
-func (m *mockUserRepo) GetAll(ctx context.Context, loadProfile bool) ([]model.User, error) {
+func (m *mockUserRepo) GetAll(ctx context.Context, loadProfile bool, filter *repository.UserFilter) ([]model.User, error) {
 	m.getAllCalls++
-	return m.getAllFn(ctx)
+	return m.getAllFn(ctx, filter)
 }
 
 func (m *mockUserRepo) GetByID(ctx context.Context, id string, loadProfile bool) (*model.User, error) {
@@ -273,13 +274,13 @@ func TestUserService_Delete_DeletesExisting(t *testing.T) {
 
 func TestUserService_GetAll(t *testing.T) {
 	repo := &mockUserRepo{
-		getAllFn: func(ctx context.Context) ([]model.User, error) {
+		getAllFn: func(ctx context.Context, filter *repository.UserFilter) ([]model.User, error) {
 			return []model.User{{ID: "u1"}, {ID: "u2"}}, nil
 		},
 	}
 	svc := &userService{userRepo: repo}
 
-	users, err := svc.GetAll(context.Background())
+	users, err := svc.GetAll(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("GetAll() err = %v", err)
 	}

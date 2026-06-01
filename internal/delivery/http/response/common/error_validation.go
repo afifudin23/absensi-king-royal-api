@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"reflect"
@@ -71,7 +72,7 @@ func ErrorValidation(err error) map[string]string {
 			case "email":
 				errorsMap[field] = field + " must be a valid email"
 			case "oneof":
-				errorsMap[field] = field + " must be one of: " + strings.ReplaceAll(fieldErr.Param(), " ", ", ")
+				errorsMap[field] = fmt.Sprintf("invalid value '%v': %s must be one of: %s", fieldErr.Value(), field, strings.ReplaceAll(fieldErr.Param(), " ", ", "))
 			default:
 				errorsMap[field] = field + " is invalid"
 			}

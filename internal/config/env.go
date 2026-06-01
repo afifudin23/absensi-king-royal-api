@@ -15,6 +15,7 @@ type EnvConfig struct {
 	AccessKey     string
 	Port          string
 	ServerBaseURL string
+	LogDetail     bool
 
 	SMTPFromName   string
 	SMTPFromEmail  string
@@ -53,6 +54,8 @@ func LoadEnv() (*EnvConfig, error) {
 	if serverBaseURL == "" {
 		return nil, fmt.Errorf("SERVER_BASE_URL is required")
 	}
+
+	logDetail := strings.ToLower(strings.TrimSpace(os.Getenv("LOG_DETAIL"))) == "true"
 
 	port := strings.TrimSpace(os.Getenv("PORT"))
 	if port == "" {
@@ -99,6 +102,7 @@ func LoadEnv() (*EnvConfig, error) {
 		AccessKey:      accessKey,
 		Port:           port,
 		ServerBaseURL:  serverBaseURL,
+		LogDetail:      logDetail,
 		SMTPFromName:   smtpFromName,
 		SMTPFromEmail:  smtpFromEmail,
 		SMTPPassword:   smtpPassword,

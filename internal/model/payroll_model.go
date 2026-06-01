@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -26,6 +27,7 @@ type Payroll struct {
 	AttendanceDeduction float64        `gorm:"column:attendance_deduction;type:decimal(15,2);null;default:0"`
 	IncomeTax           float64        `gorm:"column:income_tax;type:decimal(15,2);null;default:0"`
 	AdditionalData      datatypes.JSON `gorm:"column:additional_data;type:json;default:'{}'"`
+	GrossSalary         float64        `gorm:"column:gross_salary;type:decimal(15,2);null;default:0"`
 	NetSalary           float64        `gorm:"column:net_salary;type:decimal(15,2);null;default:0"`
 	Status              PayrollStatus  `gorm:"column:status;type:enum('unsent','sent','failed');default:'unsent'"`
 	PDFPath             *string        `gorm:"column:pdf_path;type:text;null"`
@@ -39,6 +41,9 @@ func (Payroll) TableName() string {
 }
 
 func (p *Payroll) BeforeCreate(tx *gorm.DB) error {
+	if p.ID == "" {
+		p.ID = uuid.NewString()
+	}
 	if len(p.AdditionalData) == 0 {
 		p.AdditionalData = datatypes.JSON([]byte(`{}`))
 	}

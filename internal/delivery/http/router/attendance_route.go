@@ -23,6 +23,7 @@ func registerAttendanceRoutes(rg *gin.RouterGroup) {
 		attendance.POST("/check-in", attendanceHandler.CheckIn)
 		attendance.POST("/check-out", attendanceHandler.CheckOut)
 		attendance.GET("/logs", attendanceHandler.GetLogs)
+		attendance.GET("/recap", middleware.AdminOnly(), attendanceHandler.GetRecap)
 		attendance.PATCH("/:attendance_id", middleware.AdminOnly(), attendanceHandler.Update)
 	}
 }
