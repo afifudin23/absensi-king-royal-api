@@ -14,7 +14,8 @@ func registerPayroll(rg *gin.RouterGroup) {
 	payrollRepo := repository.NewPayrollRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	payrollSettingRepo := repository.NewPayrollSettingRepository(db)
-	payrollService := service.NewPayrollService(payrollRepo, payrollSettingRepo, userRepo)
+	attendanceRepo := repository.NewAttendanceRepository(db)
+	payrollService := service.NewPayrollService(payrollRepo, payrollSettingRepo, userRepo, attendanceRepo)
 	payrollHandler := handler.NewPayrollHandler(payrollService)
 
 	payroll := rg.Group("/payrolls")

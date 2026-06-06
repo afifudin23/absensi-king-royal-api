@@ -84,7 +84,6 @@ func TestUserService_Create_HashesPasswordAndPersists(t *testing.T) {
 	in := request.UserCreateRequest{
 		FullName: "Jane Doe",
 		Email:    "jane@example.com",
-		Password: "supersecret123",
 		Role:     model.UserRoleUser,
 	}
 
@@ -110,11 +109,8 @@ func TestUserService_Create_HashesPasswordAndPersists(t *testing.T) {
 	if repo.lastCreatedUser.Role != in.Role {
 		t.Fatalf("role = %v, want %v", repo.lastCreatedUser.Role, in.Role)
 	}
-	if repo.lastCreatedUser.Password == "" || repo.lastCreatedUser.Password == in.Password {
-		t.Fatalf("password was not hashed")
-	}
-	if !utils.CheckPassword(in.Password, repo.lastCreatedUser.Password) {
-		t.Fatalf("stored password hash does not match input password")
+	if repo.lastCreatedUser.Password == "" {
+		t.Fatalf("password was not set")
 	}
 	if repo.lastCreatedProfile == nil {
 		t.Fatalf("repo.lastCreatedProfile is nil")
@@ -135,7 +131,6 @@ func TestUserService_Create_DuplicateEmail(t *testing.T) {
 	_, err := svc.Create(context.Background(), request.UserCreateRequest{
 		FullName: "Jane Doe",
 		Email:    "jane@example.com",
-		Password: "supersecret123",
 		Role:     model.UserRoleUser,
 	})
 	if !errors.Is(err, ErrEmailAlreadyRegistered) {
@@ -295,7 +290,8 @@ func TestUserService_GetAll(t *testing.T) {
 func TestUserService_Create_PassesOptionalFields(t *testing.T) {
 	employeeCode := "EMP001"
 	basicSalary := 1234.56
-	birthDate := time.Date(1995, 1, 2, 0, 0, 0, 0, time.UTC)
+	birthDateStr := "1995-01-02"
+	expectedBirthDate := time.Date(1995, 1, 2, 0, 0, 0, 0, time.UTC)
 
 	repo := &mockUserRepo{
 		createFn: func(ctx context.Context, user *model.User, profile *model.UserProfile) error {
@@ -308,7 +304,7 @@ func TestUserService_Create_PassesOptionalFields(t *testing.T) {
 			if profile.BasicSalary == nil || *profile.BasicSalary != basicSalary {
 				return errors.New("basic_salary not passed")
 			}
-			if profile.BirthDate == nil || !profile.BirthDate.Equal(birthDate) {
+			if profile.BirthDate == nil || !profile.BirthDate.Equal(expectedBirthDate) {
 				return errors.New("birth_date not passed")
 			}
 			return nil
@@ -319,11 +315,10 @@ func TestUserService_Create_PassesOptionalFields(t *testing.T) {
 	_, err := svc.Create(context.Background(), request.UserCreateRequest{
 		FullName:     "A",
 		Email:        "a@a.com",
-		Password:     "password123",
 		Role:         model.UserRoleUser,
 		EmployeeCode: &employeeCode,
 		BasicSalary:  &basicSalary,
-		BirthDate:    &birthDate,
+		BirthDate:    &birthDateStr,
 	})
 	if err != nil {
 		t.Fatalf("Create() err = %v", err)

@@ -35,6 +35,9 @@ func (m *mockAttendanceRequestRepo) Update(ctx context.Context, req *model.Atten
 func (m *mockAttendanceRequestRepo) Delete(ctx context.Context, ids []string) error {
 	return errors.New("not implemented")
 }
+func (m *mockAttendanceRequestRepo) HasOverlappingRequest(ctx context.Context, userID string, startDate, endDate time.Time, excludeID *string) (bool, error) {
+	return false, nil
+}
 
 type mockAttendanceRepo struct {
 	byUserDate map[string]*model.Attendance

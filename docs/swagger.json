@@ -1,0 +1,3613 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "REST API untuk manajemen absensi, karyawan, dan penggajian King Royal.",
+        "title": "Absensi King Royal API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Afifudin",
+            "email": "afifudin23@example.com"
+        },
+        "license": {
+            "name": "MIT"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/": {
+            "get": {
+                "description": "Mengembalikan informasi dasar API",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "General"
+                ],
+                "summary": "Root endpoint",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-internal_delivery_http_handler_rootData"
+                        }
+                    }
+                }
+            }
+        },
+        "/activity-logs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan log aktivitas seluruh pengguna dengan pagination dan filter. Akses hanya untuk admin.\n\n**Query Params (opsional):**\n- `page` (integer, default 1): Nomor halaman\n- `limit` (integer, default 20): Jumlah data per halaman\n- `user_id` (UUID): Filter log berdasarkan pengguna tertentu\n- `method` (string): Filter berdasarkan HTTP method — `POST`, `PUT`, `PATCH`, `DELETE`\n- `status_code` (integer): Filter berdasarkan kode HTTP response (contoh: 200, 400, 500)\n- `search` (string): Cari berdasarkan path atau deskripsi aksi\n\n**Behavior:** Hanya mencatat request non-GET (perubahan data). GET tidak dilog.\n\n**Response 200:** `data` (array log), `total` (total semua), `page`, `limit`",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Activity Logs"
+                ],
+                "summary": "Daftar activity log (Admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Nomor halaman (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Jumlah data per halaman (default: 20)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter berdasarkan user ID",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter berdasarkan HTTP method (GET/POST/PUT/PATCH/DELETE)",
+                        "name": "method",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter berdasarkan status code HTTP",
+                        "name": "status_code",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Cari berdasarkan path atau deskripsi",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_ActivityLogListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance-requests": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan daftar semua pengajuan absensi dari seluruh karyawan. Akses hanya untuk admin.\n\n**Query Params (opsional):**\n- `status` (string): Filter status — `pending`, `approved`, `rejected`\n- `type` (string): Filter tipe — `sick`, `leave`, `extra_off`, `overtime`\n- `start_date` (string, YYYY-MM-DD): Filter dari tanggal ini\n- `end_date` (string, YYYY-MM-DD): Filter sampai tanggal ini\n\n**Response 200:** Array pengajuan beserta nama karyawan, status review, dan bukti",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance Requests"
+                ],
+                "summary": "Semua pengajuan absensi (Admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter status (pending/approved/rejected)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter tipe (sick/leave/extra_off/overtime)",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tanggal mulai (YYYY-MM-DD)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tanggal selesai (YYYY-MM-DD)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceRequestResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Membuat pengajuan kehadiran baru seperti cuti, sakit, lembur, atau libur tambahan.\n\n**Request Body:**\n- `start_date` (string, required, format YYYY-MM-DD): Tanggal mulai pengajuan\n- `end_date` (string, required, format YYYY-MM-DD): Tanggal selesai pengajuan\n- `reason` (string, required): Alasan pengajuan\n- `type` (string, required): Tipe — `sick`, `leave`, `extra_off`, `overtime`\n- `evidence_file_id` (UUID, opsional): ID file bukti (contoh: surat dokter untuk sakit)\n- `requested_overtime_hours` (integer, opsional): Jumlah jam lembur (khusus tipe `overtime`)\n\n**Response 201:** ID pengajuan yang baru dibuat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance Requests"
+                ],
+                "summary": "Buat pengajuan absensi",
+                "parameters": [
+                    {
+                        "description": "Data pengajuan",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequestCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menghapus satu atau beberapa pengajuan absensi sekaligus berdasarkan daftar ID.\n\n**Request Body:**\n- `ids` (array of UUID, required, min 1 item): Daftar ID pengajuan yang akan dihapus\n\n**Response 200:** Jumlah data yang berhasil dihapus",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance Requests"
+                ],
+                "summary": "Hapus pengajuan absensi",
+                "parameters": [
+                    {
+                        "description": "Daftar ID pengajuan yang akan dihapus",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequestBulkDeleteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_DeleteSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance-requests/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan daftar semua pengajuan absensi milik pengguna yang sedang login.\n\n**Response 200:** Array pengajuan milik pengguna (status, tipe, tanggal, alasan, bukti, info review)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance Requests"
+                ],
+                "summary": "Pengajuan absensi saya",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceRequestResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance-requests/{attendance_request_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan detail satu pengajuan absensi berdasarkan ID.\n\n**Path Param:**\n- `attendance_request_id` (UUID): ID pengajuan yang ingin dilihat\n\n**Response 200:** Data lengkap pengajuan (status, tipe, tanggal, alasan, bukti, reviewer, catatan review)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance Requests"
+                ],
+                "summary": "Detail pengajuan absensi",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID pengajuan",
+                        "name": "attendance_request_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceRequestResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Memperbarui pengajuan absensi yang masih berstatus pending. Pengajuan yang sudah diapprove/reject tidak bisa diubah.\n\n**Request Body (semua opsional):**\n- `start_date` (string, YYYY-MM-DD): Tanggal mulai baru\n- `end_date` (string, YYYY-MM-DD): Tanggal selesai baru\n- `reason` (string): Alasan baru\n- `type` (string): Tipe baru — `sick`, `leave`, `extra_off`, `overtime`\n- `evidence_file_id` (UUID): File bukti baru\n- `requested_overtime_hours` (integer): Jam lembur baru\n\n**Response 200:** ID pengajuan yang diupdate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance Requests"
+                ],
+                "summary": "Update pengajuan absensi",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID pengajuan",
+                        "name": "attendance_request_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data yang diperbarui",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequestUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance-requests/{attendance_request_id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin menyetujui atau menolak pengajuan absensi karyawan. Akses hanya untuk admin.\n\n**Request Body:**\n- `status` (string, required): Status baru — `approved` atau `rejected`\n\n**Behavior:**\n- Jika diapprove, data absensi karyawan pada tanggal yang bersangkutan akan diperbarui otomatis\n- Reviewer dan waktu review dicatat otomatis\n\n**Response 200:** ID pengajuan yang diupdate statusnya",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance Requests"
+                ],
+                "summary": "Setujui/tolak pengajuan (Admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID pengajuan",
+                        "name": "attendance_request_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status baru (approved/rejected)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequestUpdateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance/check-in": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Melakukan check-in absensi harian dengan menyertakan foto bukti kehadiran.\n\n**Request Body:**\n- `file_id` (UUID, required): ID file foto check-in yang sudah diupload sebelumnya via `POST /files`\n\n**Validasi \u0026 Behavior:**\n- Hanya bisa check-in sekali per hari\n- Jika sudah check-in hari ini, request akan ditolak\n- Waktu check-in dicatat otomatis sesuai waktu server\n\n**Response 200:** Data absensi hari ini (id, status, tanggal, jam check-in, URL foto)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "Check-in",
+                "parameters": [
+                    {
+                        "description": "ID file foto check-in",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance/check-out": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Melakukan check-out absensi harian dengan menyertakan foto bukti.\n\n**Request Body:**\n- `file_id` (UUID, required): ID file foto check-out yang sudah diupload via `POST /files`\n\n**Validasi \u0026 Behavior:**\n- Harus sudah check-in terlebih dahulu di hari yang sama\n- Hanya bisa check-out sekali per hari\n- Waktu check-out dicatat otomatis sesuai waktu server\n\n**Response 200:** Data absensi hari ini (id, status, jam check-in, jam check-out, URL foto)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "Check-out",
+                "parameters": [
+                    {
+                        "description": "ID file foto check-out",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance/logs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan riwayat absensi milik pengguna yang sedang login.\n\n**Query Params (opsional):**\n- `start_date` (string, format YYYY-MM-DD): Filter dari tanggal ini\n- `end_date` (string, format YYYY-MM-DD): Filter sampai tanggal ini\n\n**Response 200:** Array data absensi (tanggal, status, jam masuk/keluar, foto, lembur, dll)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "Log absensi saya",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tanggal mulai (YYYY-MM-DD)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tanggal selesai (YYYY-MM-DD)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance/recap": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan rekap absensi seluruh karyawan dalam satu bulan. Akses hanya untuk admin.\n\n**Query Params (required):**\n- `month` (integer, 1–12): Bulan yang ingin dilihat\n- `year` (integer, min 2000): Tahun yang ingin dilihat\n\n**Response 200:** Rekap absensi per karyawan (hadir, sakit, cuti, absen, lembur, dll)\n\n**Akses:** Hanya admin",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "Rekap absensi (Admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Bulan (1-12)",
+                        "name": "month",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Tahun (contoh: 2024)",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance/{attendance_id}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin memperbarui data absensi karyawan tertentu. Akses hanya untuk admin.\n\n**Path Param:**\n- `attendance_id` (UUID): ID record absensi yang akan diupdate\n\n**Request Body (semua opsional):**\n- `status` (string): Status absensi — `present`, `off`, `sick`, `extra_off`, `absent`, `leave`\n- `check_in_at` (string, RFC3339): Jam check-in manual\n- `check_out_at` (string, RFC3339): Jam check-out manual\n- `note` (string): Catatan admin\n- `overtime_hours` (integer): Jumlah jam lembur\n- `evidence_file_id` (UUID): ID file bukti\n\n**Response 200:** ID absensi yang diupdate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendance"
+                ],
+                "summary": "Update absensi (Admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID absensi",
+                        "name": "attendance_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data absensi yang diperbarui",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/forgot-password": {
+            "post": {
+                "description": "Meminta kode OTP yang dikirim ke email untuk proses reset password.\n\n**Request Body:**\n- `email` (string, required, format email): Alamat email akun yang terdaftar\n\n**Behavior:**\n- Jika email terdaftar, kode OTP (6 digit) akan dikirim ke alamat email tersebut\n- Jika email tidak terdaftar, response tetap 200 (untuk keamanan, tidak mengekspos data)\n- Kode OTP memiliki masa berlaku terbatas\n\n**Response 200:** Pesan konfirmasi pengiriman OTP",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Lupa password",
+                "parameters": [
+                    {
+                        "description": "Email terdaftar",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Login menggunakan email dan password, mengembalikan JWT access token.\n\n**Request Body:**\n- `email` (string, required): Alamat email akun\n- `password` (string, required): Password akun\n\n**Validasi \u0026 Behavior:**\n- Jika email tidak ditemukan atau password salah, request ditolak dengan 401\n- Token yang dikembalikan digunakan sebagai Bearer token di header Authorization\n\n**Response 200:** `access_token` (JWT), `token_type` (Bearer), data user (id, nama, email, role)\n\n**Error:** 401 jika kredensial salah",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login pengguna",
+                "parameters": [
+                    {
+                        "description": "Kredensial login",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AuthLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "description": "Logout dari sesi aktif.\n\n**Behavior:**\n- Endpoint ini tidak menginvalidasi token di server (stateless JWT)\n- Klien wajib menghapus `access_token` dari penyimpanan lokal setelah memanggil endpoint ini\n\n**Response 200:** Pesan konfirmasi logout berhasil",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout pengguna",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "description": "Mendaftarkan akun pengguna baru menggunakan email dan password.\n\n**Request Body:**\n- `full_name` (string, required, min 3 karakter): Nama lengkap pengguna\n- `email` (string, required, format email): Alamat email unik\n- `password` (string, required, min 8 karakter): Password akun\n\n**Validasi \u0026 Behavior:**\n- Email harus unik, jika sudah terdaftar akan mengembalikan 400\n- Password di-hash menggunakan argon2id sebelum disimpan\n\n**Response 201:** ID pengguna yang baru dibuat\n\n**Error:** 400 jika email sudah terdaftar atau validasi gagal",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Registrasi pengguna baru",
+                "parameters": [
+                    {
+                        "description": "Data registrasi",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AuthRegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_RegisterResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "Mereset password menggunakan kode OTP yang telah dikirim ke email.\n\n**Request Body:**\n- `email` (string, required, format email): Email akun yang akan direset\n- `otp` (string, required, tepat 6 karakter): Kode OTP dari email\n- `new_password` (string, required, min 8 karakter): Password baru\n\n**Validasi \u0026 Behavior:**\n- OTP harus valid dan belum kadaluarsa\n- Password baru akan di-hash sebelum disimpan\n- Setelah berhasil, OTP akan dihapus dan tidak bisa digunakan lagi\n\n**Response 200:** Pesan konfirmasi password berhasil direset\n\n**Error:** 400 jika OTP tidak valid atau sudah kadaluarsa",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset password",
+                "parameters": [
+                    {
+                        "description": "Data reset password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/files": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Upload file ke server untuk digunakan pada check-in, check-out, foto profil, atau bukti pengajuan.\n\n**Form Data:**\n- `file` (file, required): File yang akan diupload. Maksimal 5 MB\n- `file_type` (string, required): Tipe file — `check_in`, `check_out`, `profile_picture`, `sick`, `extra_off`, `overtime`, `leave`\n\n**Validasi:**\n- Ukuran file maksimal 5 MB\n- Tipe file harus salah satu dari nilai yang diizinkan di atas\n- Jika tipe `profile_picture`, foto profil lama akan otomatis dihapus dan profil pengguna diperbarui\n\n**Response 200:** Data file yang berhasil diupload (id, url, nama, ukuran, mime type)\n\n**Cara pakai:** Upload file terlebih dahulu, lalu gunakan `id` yang dikembalikan di endpoint lain (check-in, pengajuan, dll)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Upload file",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File yang akan diupload (maks 5 MB)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tipe file: check_in | check_out | profile_picture | sick | extra_off | overtime | leave",
+                        "name": "file_type",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_FileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/files/{file_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menghapus file dari server berdasarkan ID.\n\n**Path Param:**\n- `file_id` (UUID): ID file yang akan dihapus\n\n**Behavior:** File akan dihapus permanen dari server dan database\n\n**Response 200:** ID file yang berhasil dihapus",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Hapus file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID file",
+                        "name": "file_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Mengecek status koneksi database dan server",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "General"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-internal_delivery_http_handler_healthData"
+                        }
+                    }
+                }
+            }
+        },
+        "/payroll-settings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan semua komponen konfigurasi penggajian yang tersimpan.\n\n**Response 200:** Array konfigurasi (id, config_name, config_key, value, tanggal dibuat/diupdate)\n\n**Contoh komponen:** Tarif lembur, potongan absensi, pajak penghasilan, tunjangan default, dll",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll Settings"
+                ],
+                "summary": "Daftar pengaturan payroll",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollSettingResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menambahkan komponen konfigurasi penggajian baru.\n\n**Request Body:**\n- `config_name` (string, required, min 3 karakter): Nama komponen (contoh: \"Tarif Lembur Per Jam\")\n- `value` (number, required): Nilai komponen (contoh: 50000)\n\n**Behavior:**\n- `config_key` dibuat otomatis dari `config_name` (snake_case)\n- Nama komponen harus unik, jika sudah ada akan mengembalikan 400\n\n**Response 201:** Data komponen yang baru dibuat (id, config_name, config_key, value)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll Settings"
+                ],
+                "summary": "Buat pengaturan payroll",
+                "parameters": [
+                    {
+                        "description": "Data komponen penggajian",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollSettingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollSettingResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menghapus satu atau beberapa komponen konfigurasi penggajian berdasarkan daftar ID.\n\n**Request Body:**\n- `ids` (array of UUID, required, min 1): Daftar ID komponen yang akan dihapus\n\n**Response 200:** `total` (jumlah yang dihapus), `deleted_count`, `skipped_count`",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll Settings"
+                ],
+                "summary": "Hapus pengaturan payroll",
+                "parameters": [
+                    {
+                        "description": "Daftar ID yang akan dihapus",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollSettingIdsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollSettingDeleteResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/payroll-settings/bulk": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Memperbarui beberapa komponen konfigurasi penggajian sekaligus dalam satu request.\n\n**Request Body:**\n- `settings` (array, required, min 1): Daftar komponen yang akan diupdate\n- `config_key` (string, required): Key komponen yang akan diupdate (harus sudah ada)\n- `value` (number, required): Nilai baru\n\n**Response 201:** Array seluruh komponen setelah diupdate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll Settings"
+                ],
+                "summary": "Bulk update pengaturan payroll",
+                "parameters": [
+                    {
+                        "description": "Daftar komponen yang diperbarui",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollSettingUpdateBulkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollSettingResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/payroll-settings/{payroll_id}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Memperbarui satu komponen konfigurasi penggajian berdasarkan ID.\n\n**Request Body:**\n- `config_name` (string, required): Nama komponen baru\n- `value` (number, required): Nilai komponen baru\n\n**Response 201:** Data komponen setelah diupdate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll Settings"
+                ],
+                "summary": "Update pengaturan payroll",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID pengaturan payroll",
+                        "name": "payroll_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data yang diperbarui",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollSettingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollSettingResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/payrolls": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan daftar semua slip gaji seluruh karyawan.\n\n**Response 200:** Array data payroll (gaji pokok, tunjangan, potongan, gaji bersih, status, pdf path, dll)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll"
+                ],
+                "summary": "Semua payroll",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/payrolls/generate-all": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Membuat slip gaji untuk semua karyawan aktif secara sekaligus.\n\n**Behavior:**\n- Memproses semua karyawan dengan role `user` yang aktif\n- Setiap payroll dihitung berdasarkan data profil dan rekap absensi masing-masing karyawan\n- PDF slip gaji dibuat untuk setiap karyawan\n\n**Response 201:** Array seluruh data payroll yang baru digenerate",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll"
+                ],
+                "summary": "Generate payroll semua karyawan",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/payrolls/generate/{employee_id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Membuat slip gaji untuk satu karyawan berdasarkan ID karyawan.\n\n**Path Param:**\n- `employee_id` (UUID): ID karyawan yang akan dibuatkan payroll\n\n**Behavior:**\n- Menghitung gaji berdasarkan data profil karyawan (gaji pokok, tunjangan) dan konfigurasi payroll\n- Memperhitungkan rekap absensi (lembur, potongan ketidakhadiran)\n- File PDF slip gaji dibuat otomatis\n\n**Response 201:** Data payroll yang baru digenerate",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll"
+                ],
+                "summary": "Generate payroll satu karyawan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID karyawan",
+                        "name": "employee_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/payrolls/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan daftar slip gaji milik pengguna yang sedang login.\n\n**Response 200:** Array slip gaji milik pengguna (gaji pokok, tunjangan, potongan, gaji bersih, status pengiriman)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll"
+                ],
+                "summary": "Payroll saya",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/payrolls/{payroll_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan detail satu slip gaji berdasarkan ID.\n\n**Response 200:** Data payroll lengkap (gaji pokok, semua tunjangan, semua potongan, gaji kotor, gaji bersih, status, pdf)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll"
+                ],
+                "summary": "Detail payroll",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID payroll",
+                        "name": "payroll_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Memperbarui komponen data slip gaji karyawan secara manual.\n\n**Request Body (semua opsional):**\n- `basic_salary` (number): Gaji pokok\n- `position_allowance` (number): Tunjangan jabatan\n- `other_allowance` (number): Tunjangan lain\n- `overtime_rate` (number): Total nilai lembur\n- `loan_deduction` (number): Potongan pinjaman\n- `attendance_deduction` (number): Potongan absensi\n- `income_tax` (number): Pajak penghasilan\n- `additional_data` (JSON): Data tambahan\n\n**Response 200:** Data payroll setelah diupdate (gaji kotor dan bersih dihitung ulang)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll"
+                ],
+                "summary": "Update payroll",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID payroll",
+                        "name": "payroll_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data yang diperbarui",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/payrolls/{payroll_id}/send": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengirimkan slip gaji dalam format PDF ke alamat email karyawan.\n\n**Path Param:**\n- `payroll_id` (UUID): ID payroll yang akan dikirim\n\n**Behavior:**\n- PDF slip gaji dikirim sebagai lampiran email ke alamat email karyawan\n- Waktu pengiriman (`sent_at`) dicatat otomatis setelah berhasil dikirim\n- Status payroll diperbarui menjadi `sent`\n\n**Response 200:** Data payroll dengan `sent_at` yang telah diisi",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payroll"
+                ],
+                "summary": "Kirim payroll via email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID payroll",
+                        "name": "payroll_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan daftar seluruh pengguna yang terdaftar.\n\n**Query Params (opsional):**\n- `search` (string): Filter berdasarkan nama atau email\n- `role` (string): Filter berdasarkan role — `admin` atau `user`\n\n**Response 200:** Array data pengguna beserta profil lengkap (posisi, departemen, gaji, dll)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Daftar semua pengguna",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Cari berdasarkan nama atau email",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter berdasarkan role (admin/user)",
+                        "name": "role",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_UserResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Membuat akun pengguna baru beserta data profil karyawan.\n\n**Request Body:**\n- `full_name` (string, required): Nama lengkap\n- `email` (string, required): Email unik\n- `role` (string, required): Role akun — `admin` atau `user`\n- `employee_code`, `employment_status`, `birth_place`, `birth_date`, `gender` (opsional)\n- `address`, `phone_number`, `position`, `department`, `bank_account_number` (opsional)\n- `basic_salary`, `position_allowance`, `other_allowance` (opsional, angka)\n\n**Behavior:**\n- Password awal akan di-generate otomatis dan bisa direset oleh admin\n- Mengembalikan daftar semua pengguna setelah user baru berhasil dibuat\n\n**Response 201:** Array seluruh data pengguna (termasuk yang baru dibuat)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Buat pengguna baru",
+                "parameters": [
+                    {
+                        "description": "Data pengguna baru",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.UserCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan data profil lengkap pengguna yang sedang login.\n\n**Response 200:** Data pengguna lengkap termasuk profil karyawan (posisi, departemen, gaji pokok, foto profil, dll)\n\n**Error:** 401 jika token tidak valid atau tidak ada",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Profil saya",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Memperbarui data profil pengguna yang sedang login. Semua field bersifat opsional (partial update).\n\n**Field yang bisa diupdate:**\n- `full_name`, `email`, `phone_number`, `address`, `gender`, `birth_date`, `birth_place`\n- `employee_code`, `employment_status`, `position`, `department`, `bank_account_number`\n- `profile_picture_id` (UUID file yang sudah diupload), `clear_profile_picture` (boolean, untuk hapus foto)\n\n**Response 200:** ID pengguna yang diupdate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update profil saya",
+                "parameters": [
+                    {
+                        "description": "Data profil yang diperbarui",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.UserUpdateProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/me/password": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengganti password akun pengguna yang sedang login.\n\n**Request Body:**\n- `current_password` (string, required): Password saat ini\n- `new_password` (string, required, min 8 karakter): Password baru\n- `confirm_password` (string, required): Konfirmasi password baru, harus sama dengan `new_password`\n\n**Validasi:**\n- `current_password` harus cocok dengan password yang tersimpan\n- `new_password` dan `confirm_password` harus identik\n\n**Response 200:** ID pengguna\n\n**Error:** 400 jika password lama salah atau konfirmasi tidak cocok",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Ganti password",
+                "parameters": [
+                    {
+                        "description": "Password lama dan baru",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{user_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mendapatkan data lengkap satu pengguna berdasarkan ID.\n\n**Path Param:**\n- `user_id` (UUID): ID pengguna yang ingin dilihat\n\n**Response 200:** Data pengguna beserta profil lengkap\n\n**Error:** 404 jika pengguna tidak ditemukan",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Detail pengguna",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID pengguna",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Memperbarui data pengguna tertentu berdasarkan ID. Semua field opsional (partial update).\n\n**Field yang bisa diupdate:** `full_name`, `email`, `role`, `employee_code`, `employment_status`,\n`birth_place`, `birth_date`, `gender`, `address`, `phone_number`, `position`, `department`,\n`bank_account_number`, `basic_salary`, `position_allowance`, `other_allowance`, `joined_at`,\n`profile_picture_id`, `clear_profile_picture`\n\n**Response 200:** Array seluruh data pengguna setelah diupdate",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update pengguna",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID pengguna",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data yang diperbarui",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.UserUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menghapus pengguna berdasarkan ID menggunakan soft delete (data tidak benar-benar terhapus dari database).\n\n**Path Param:**\n- `user_id` (UUID): ID pengguna yang akan dihapus\n\n**Response 200:** ID pengguna yang dihapus\n\n**Error:** 404 jika pengguna tidak ditemukan",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Hapus pengguna",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID pengguna",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{user_id}/reset-password": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin mereset password pengguna tertentu tanpa perlu mengetahui password lama.\n\n**Path Param:**\n- `user_id` (UUID): ID pengguna yang akan direset passwordnya\n\n**Request Body:**\n- `new_password` (string, required, min 8 karakter): Password baru untuk pengguna tersebut\n\n**Akses:** Hanya admin\n\n**Response 200:** ID pengguna yang passwordnya berhasil direset",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Reset password pengguna (Admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID pengguna",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Password baru",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AdminResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AdminResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "description": "NewPassword string `json:\"new_password\" binding:\"required,min=8,max=100\"` // TODO: re-enable min=8 for production",
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequest": {
+            "type": "object",
+            "required": [
+                "file_id"
+            ],
+            "properties": {
+                "file_id": {
+                    "description": "FileID is the `files.id` that has been uploaded previously.",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequestBulkDeleteRequest": {
+            "type": "object",
+            "required": [
+                "ids"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequestCreateRequest": {
+            "type": "object",
+            "required": [
+                "end_date",
+                "reason",
+                "start_date",
+                "type"
+            ],
+            "properties": {
+                "end_date": {
+                    "type": "string"
+                },
+                "evidence_file_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "requested_overtime_hours": {
+                    "type": "integer"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "type": {
+                    "enum": [
+                        "sick",
+                        "leave",
+                        "extra_off",
+                        "overtime"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceRequestType"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequestUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "end_date": {
+                    "type": "string"
+                },
+                "evidence_file_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "requested_overtime_hours": {
+                    "type": "integer"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "type": {
+                    "enum": [
+                        "sick",
+                        "leave",
+                        "extra_off",
+                        "overtime"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceRequestType"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceRequestUpdateStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "enum": [
+                        "approved",
+                        "rejected"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceRequestStatus"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AttendanceUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "check_in_at": {
+                    "type": "string"
+                },
+                "check_out_at": {
+                    "type": "string"
+                },
+                "evidence_file_id": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "overtime_hours": {
+                    "type": "integer"
+                },
+                "status": {
+                    "enum": [
+                        "present",
+                        "off",
+                        "sick",
+                        "extra_off",
+                        "absent",
+                        "leave"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceStatus"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AuthLoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "description": "Email    string `json:\"email\" binding:\"required,email,max=255\"` // TODO: re-enable email validation for production",
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "password": {
+                    "description": "Password string `json:\"password\" binding:\"required,min=8,max=72\"` // TODO: re-enable min=8 for production",
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 3
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.AuthRegisterRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "full_name",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.ChangePasswordRequest": {
+            "type": "object",
+            "required": [
+                "confirm_password",
+                "current_password",
+                "new_password"
+            ],
+            "properties": {
+                "confirm_password": {
+                    "type": "string"
+                },
+                "current_password": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "description": "NewPassword string `json:\"new_password\" binding:\"required,min=8,max=100\"` // TODO: re-enable min=8 for production",
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollSettingByKeyRequest": {
+            "type": "object",
+            "required": [
+                "config_key",
+                "value"
+            ],
+            "properties": {
+                "config_key": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollSettingIdsRequest": {
+            "type": "object",
+            "required": [
+                "ids"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollSettingRequest": {
+            "type": "object",
+            "required": [
+                "config_name",
+                "value"
+            ],
+            "properties": {
+                "config_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollSettingUpdateBulkRequest": {
+            "type": "object",
+            "required": [
+                "settings"
+            ],
+            "properties": {
+                "settings": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollSettingByKeyRequest"
+                    }
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.PayrollUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "additional_data": {
+                    "type": "string"
+                },
+                "attendance_deduction": {
+                    "type": "number"
+                },
+                "basic_salary": {
+                    "type": "number"
+                },
+                "income_tax": {
+                    "type": "number"
+                },
+                "loan_deduction": {
+                    "type": "number"
+                },
+                "other_allowance": {
+                    "type": "number"
+                },
+                "overtime_rate": {
+                    "type": "number"
+                },
+                "position_allowance": {
+                    "type": "number"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "new_password",
+                "otp"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "new_password": {
+                    "description": "NewPassword string `json:\"new_password\" binding:\"required,min=8,max=100\"` // TODO: re-enable min=8 for production",
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3
+                },
+                "otp": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.UserCreateRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "full_name",
+                "role"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "bank_account_number": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "basic_salary": {
+                    "type": "number"
+                },
+                "birth_date": {
+                    "type": "string"
+                },
+                "birth_place": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "department": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "email": {
+                    "description": "Email string `json:\"email\" binding:\"required,email,max=255\"` // TODO: re-enable email validation for production",
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "employee_code": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "employment_status": {
+                    "maxLength": 100,
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserEmploymentStatus"
+                        }
+                    ]
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
+                },
+                "gender": {
+                    "enum": [
+                        "male",
+                        "female",
+                        "other"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserGender"
+                        }
+                    ]
+                },
+                "other_allowance": {
+                    "type": "number"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "position": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "position_allowance": {
+                    "type": "number"
+                },
+                "profile_picture_id": {
+                    "type": "string"
+                },
+                "role": {
+                    "enum": [
+                        "admin",
+                        "user"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserRole"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.UserUpdateProfileRequest": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "bank_account_number": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "birth_date": {
+                    "type": "string"
+                },
+                "birth_place": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "clear_profile_picture": {
+                    "type": "boolean"
+                },
+                "department": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "email": {
+                    "description": "Email *string `json:\"email\" binding:\"omitempty,email,max=255\"` // TODO: re-enable email validation for production",
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "employee_code": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "employment_status": {
+                    "maxLength": 100,
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserEmploymentStatus"
+                        }
+                    ]
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
+                },
+                "gender": {
+                    "enum": [
+                        "male",
+                        "female",
+                        "other"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserGender"
+                        }
+                    ]
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 8
+                },
+                "phone_number": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "position": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "profile_picture_id": {
+                    "type": "string"
+                },
+                "role": {
+                    "enum": [
+                        "admin",
+                        "user"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserRole"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_request.UserUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "bank_account_number": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "basic_salary": {
+                    "type": "number"
+                },
+                "birth_date": {
+                    "type": "string"
+                },
+                "birth_place": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "clear_profile_picture": {
+                    "type": "boolean"
+                },
+                "department": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "email": {
+                    "description": "Email *string `json:\"email\" binding:\"omitempty,email,max=255\"` // TODO: re-enable email validation for production",
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "employee_code": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "employment_status": {
+                    "maxLength": 100,
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserEmploymentStatus"
+                        }
+                    ]
+                },
+                "full_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3
+                },
+                "gender": {
+                    "enum": [
+                        "male",
+                        "female",
+                        "other"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserGender"
+                        }
+                    ]
+                },
+                "joined_at": {
+                    "type": "string"
+                },
+                "other_allowance": {
+                    "type": "number"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "position": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "position_allowance": {
+                    "type": "number"
+                },
+                "profile_picture_id": {
+                    "type": "string"
+                },
+                "role": {
+                    "enum": [
+                        "admin",
+                        "user"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserRole"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.ActivityLogListResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.ActivityLogResponse"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.ActivityLogResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "latency_ms": {
+                    "type": "number"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "status_code": {
+                    "type": "integer"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "user_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.AttendanceRequestResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "employee_name": {
+                    "type": "string"
+                },
+                "end_date": {
+                    "type": "string"
+                },
+                "evidence_file_id": {
+                    "type": "string"
+                },
+                "evidence_file_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "requested_overtime_hours": {
+                    "type": "integer"
+                },
+                "review_note": {
+                    "type": "string"
+                },
+                "reviewed_at": {
+                    "type": "string"
+                },
+                "reviewed_by": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceRequestStatus"
+                },
+                "type": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceRequestType"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.AttendanceResponse": {
+            "type": "object",
+            "properties": {
+                "check_in_at": {
+                    "type": "string"
+                },
+                "check_in_file_id": {
+                    "type": "string"
+                },
+                "check_in_file_url": {
+                    "type": "string"
+                },
+                "check_out_at": {
+                    "type": "string"
+                },
+                "check_out_file_id": {
+                    "type": "string"
+                },
+                "check_out_file_url": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "evidence_file_id": {
+                    "type": "string"
+                },
+                "evidence_file_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "overtime_hours": {
+                    "type": "integer"
+                },
+                "source": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceSource"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "updated_by": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.FileResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "file_path": {
+                    "type": "string"
+                },
+                "file_size": {
+                    "type": "integer"
+                },
+                "file_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mime_type": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.FileType"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "uploaded_by": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.UserData"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.PayrollResponse": {
+            "type": "object",
+            "properties": {
+                "additional_data": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "attendance_deduction": {
+                    "type": "number"
+                },
+                "basic_salary": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "employee_id": {
+                    "type": "string"
+                },
+                "gross_salary": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "income_tax": {
+                    "type": "number"
+                },
+                "loan_deduction": {
+                    "type": "number"
+                },
+                "net_salary": {
+                    "type": "number"
+                },
+                "other_allowance": {
+                    "type": "number"
+                },
+                "overtime_rate": {
+                    "type": "number"
+                },
+                "pdf_path": {
+                    "type": "string"
+                },
+                "position_allowance": {
+                    "type": "number"
+                },
+                "sent_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.PayrollSettingDeleteResponse": {
+            "type": "object",
+            "properties": {
+                "deleted_count": {
+                    "type": "integer"
+                },
+                "skipped_count": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.PayrollSettingResponse": {
+            "type": "object",
+            "properties": {
+                "config_key": {
+                    "type": "string"
+                },
+                "config_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.RegisterResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.UserData": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserRole"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.UserResponse": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "bank_account_number": {
+                    "type": "string"
+                },
+                "basic_salary": {
+                    "type": "number"
+                },
+                "birth_date": {
+                    "type": "string"
+                },
+                "birth_place": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "department": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "employee_code": {
+                    "type": "string"
+                },
+                "employment_status": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserEmploymentStatus"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "gender": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserGender"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "joined_at": {
+                    "type": "string"
+                },
+                "other_allowance": {
+                    "type": "number"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "string"
+                },
+                "position_allowance": {
+                    "type": "number"
+                },
+                "profile_picture_id": {
+                    "type": "string"
+                },
+                "profile_picture_url": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_model.UserRole"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ActionSuccessResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.DeleteSuccessResponse": {
+            "type": "object",
+            "properties": {
+                "deleted_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorCode": {
+            "type": "string",
+            "enum": [
+                "BAD_REQUEST",
+                "VALIDATION_ERROR",
+                "AUTH_REQUIRED",
+                "AUTH_INVALID_CREDENTIALS",
+                "NOT_FOUND",
+                "FORBIDDEN",
+                "INTERNAL_SERVER_ERROR",
+                "DATABASE_ERROR",
+                "TOO_MANY_REQUESTS"
+            ],
+            "x-enum-varnames": [
+                "BAD_REQUEST",
+                "VALIDATION_ERROR",
+                "AUTH_REQUIRED",
+                "AUTH_INVALID_CREDENTIALS",
+                "NOT_FOUND",
+                "FORBIDDEN",
+                "INTERNAL_SERVER_ERROR",
+                "DATABASE_ERROR",
+                "TOO_MANY_REQUESTS"
+            ]
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorCode"
+                },
+                "details": {},
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-any": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceRequestResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.AttendanceRequestResponse"
+                    }
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.AttendanceResponse"
+                    }
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.PayrollResponse"
+                    }
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollSettingResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.PayrollSettingResponse"
+                    }
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-array_github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_UserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.UserResponse"
+                    }
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_ActivityLogListResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.ActivityLogListResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceRequestResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.AttendanceRequestResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_AttendanceResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.AttendanceResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_FileResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.FileResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_LoginResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.LoginResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.PayrollResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollSettingDeleteResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.PayrollSettingDeleteResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_PayrollSettingResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.PayrollSettingResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_RegisterResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.RegisterResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_UserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response.UserResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_ActionSuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ActionSuccessResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common_DeleteSuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.DeleteSuccessResponse"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-internal_delivery_http_handler_healthData": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/internal_delivery_http_handler.healthData"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.Response-internal_delivery_http_handler_rootData": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/internal_delivery_http_handler.rootData"
+                },
+                "error": {
+                    "$ref": "#/definitions/github_com_afifudin23_absensi-king-royal-api_internal_delivery_http_response_common.ErrorSchema"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceRequestStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "approved",
+                "rejected"
+            ],
+            "x-enum-varnames": [
+                "AttendanceRequestStatusPending",
+                "AttendanceRequestStatusApproved",
+                "AttendanceRequestStatusRejected"
+            ]
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceRequestType": {
+            "type": "string",
+            "enum": [
+                "sick",
+                "leave",
+                "extra_off",
+                "overtime"
+            ],
+            "x-enum-varnames": [
+                "AttendanceRequestTypeSick",
+                "AttendanceRequestTypeLeave",
+                "AttendanceRequestTypeExtraOff",
+                "AttendanceRequestTypeOvertime"
+            ]
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceSource": {
+            "type": "string",
+            "enum": [
+                "self_service",
+                "admin_edit",
+                "approved_request",
+                "system"
+            ],
+            "x-enum-varnames": [
+                "AttendanceSourceSelfService",
+                "AttendanceSourceAdminEdit",
+                "AttendanceSourceApprovedRequest",
+                "AttendanceSourceSystem"
+            ]
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_model.AttendanceStatus": {
+            "type": "string",
+            "enum": [
+                "present",
+                "off",
+                "sick",
+                "extra_off",
+                "absent",
+                "leave"
+            ],
+            "x-enum-varnames": [
+                "AttendanceStatusPresent",
+                "AttendanceStatusOff",
+                "AttendanceStatusSick",
+                "AttendanceStatusExtraOff",
+                "AttendanceStatusAbsent",
+                "AttendanceStatusLeave"
+            ]
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_model.FileType": {
+            "type": "string",
+            "enum": [
+                "check_in",
+                "check_out",
+                "profile_picture",
+                "sick",
+                "extra_off",
+                "overtime",
+                "leave"
+            ],
+            "x-enum-varnames": [
+                "FileTypeCheckIn",
+                "FileTypeCheckOut",
+                "FileTypeProfilePicture",
+                "FileTypeSick",
+                "FileTypeExtraOff",
+                "FileTypeOvertime",
+                "FileTypeLeave"
+            ]
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_model.UserEmploymentStatus": {
+            "type": "string",
+            "enum": [
+                "permanent",
+                "contract",
+                "internship",
+                "freelance"
+            ],
+            "x-enum-varnames": [
+                "EmploymentStatusPermanent",
+                "EmploymentStatusContract",
+                "EmploymentStatusInternship",
+                "EmploymentStatusFreelance"
+            ]
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_model.UserGender": {
+            "type": "string",
+            "enum": [
+                "male",
+                "female",
+                "other"
+            ],
+            "x-enum-varnames": [
+                "UserGenderMale",
+                "UserGenderFemale",
+                "UserGenderOther"
+            ]
+        },
+        "github_com_afifudin23_absensi-king-royal-api_internal_model.UserRole": {
+            "type": "string",
+            "enum": [
+                "admin",
+                "user"
+            ],
+            "x-enum-varnames": [
+                "UserRoleAdmin",
+                "UserRoleUser"
+            ]
+        },
+        "internal_delivery_http_handler.healthData": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_delivery_http_handler.rootData": {
+            "type": "object",
+            "properties": {
+                "app_version": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Masukkan token JWT dengan format: **Bearer \u0026lt;token\u0026gt;** — contoh: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    },
+    "tags": [
+        {
+            "description": "Root dan health check",
+            "name": "General"
+        },
+        {
+            "description": "Registrasi, login, dan manajemen password",
+            "name": "Auth"
+        },
+        {
+            "description": "Manajemen data pengguna dan profil",
+            "name": "Users"
+        },
+        {
+            "description": "Check-in, check-out, dan rekap absensi",
+            "name": "Attendance"
+        },
+        {
+            "description": "Pengajuan cuti, sakit, lembur, dan libur tambahan",
+            "name": "Attendance Requests"
+        },
+        {
+            "description": "Upload dan manajemen file",
+            "name": "Files"
+        },
+        {
+            "description": "Konfigurasi komponen penggajian",
+            "name": "Payroll Settings"
+        },
+        {
+            "description": "Slip gaji dan penggajian karyawan",
+            "name": "Payroll"
+        },
+        {
+            "description": "Log aktivitas sistem (Admin only)",
+            "name": "Activity Logs"
+        }
+    ]
+}

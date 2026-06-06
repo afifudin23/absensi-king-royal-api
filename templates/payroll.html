@@ -1,17 +1,99 @@
 <!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Document</title>
-    </head>
-    <body>
-        <p>Hi {{.EmployeeName}},</p>
-        <p>Berikut payroll slip untuk periode {{.PayrollDate}}.</p>
-        <p>Net salary: Rp {{.NetSalary}}</p>
-        <p>
-            Download payroll:
-            <a href="{{.PayrollURL}}">{{.PayrollURL}}</a>
-        </p>
-    </body>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payroll Slip</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f0f2f5;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+            <!-- Header -->
+            <tr>
+              <td style="background:#0D2B52;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center;">
+                <p style="margin:0;color:#ffffff;font-size:20px;font-weight:bold;letter-spacing:1px;">
+                  King Royal Hotel
+                </p>
+                <p style="margin:4px 0 0;color:#a8c4e0;font-size:13px;">
+                  Sistem Absensi
+                </p>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="background:#ffffff;padding:36px 32px;">
+
+                <h2 style="margin:0 0 16px;color:#0D2B52;font-size:22px;">
+                  Slip Gaji
+                </h2>
+
+                <p style="margin:0 0 8px;color:#333;font-size:15px;">
+                  Halo <strong>{{.EmployeeName}}</strong>,
+                </p>
+                <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.6;">
+                  Berikut adalah slip gaji kamu untuk periode <strong>{{.PayrollDate}}</strong>.
+                </p>
+
+                <!-- Salary Box -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                  <tr>
+                    <td style="background:#f5f8ff;border:1px solid #d0dff5;border-radius:10px;padding:20px 24px;">
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding:6px 0;">
+                            <span style="color:#888;font-size:12px;">Periode</span><br/>
+                            <strong style="color:#0D2B52;font-size:15px;">{{.PayrollDate}}</strong>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:10px 0 6px;border-top:1px solid #e0eaf5;">
+                            <span style="color:#888;font-size:12px;">Gaji Bersih</span><br/>
+                            <strong style="color:#0D2B52;font-size:22px;letter-spacing:1px;">{{.NetSalary}}</strong>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Download Button -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+                  <tr>
+                    <td align="center">
+                      <a href="{{.PayrollURL}}"
+                         style="display:inline-block;background:#0D2B52;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;padding:12px 32px;border-radius:8px;">
+                        Download Slip Gaji
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:0;color:#888;font-size:13px;line-height:1.6;">
+                  Jika kamu memiliki pertanyaan terkait slip gaji ini, silakan hubungi HRD.
+                </p>
+
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background:#f8f9fa;border-radius:0 0 12px 12px;padding:20px 32px;text-align:center;border-top:1px solid #e9ecef;">
+                <p style="margin:0;color:#aaa;font-size:12px;">
+                  &copy; 2026 King Royal Hotel &mdash; Sistem Absensi
+                </p>
+                <p style="margin:4px 0 0;color:#ccc;font-size:11px;">
+                  Jangan balas email ini.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>

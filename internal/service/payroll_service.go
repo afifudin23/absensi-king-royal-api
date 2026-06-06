@@ -36,10 +36,11 @@ type payrollService struct {
 	payrollRepo        repository.PayrollRepository
 	payrollSettingRepo repository.PayrollSettingRepository
 	userRepo           repository.UserRepository
+	attendanceRepo     repository.AttendanceRepository
 }
 
-func NewPayrollService(payrollRepo repository.PayrollRepository, payrollSettingRepo repository.PayrollSettingRepository, userRepo repository.UserRepository) PayrollService {
-	return &payrollService{payrollRepo: payrollRepo, payrollSettingRepo: payrollSettingRepo, userRepo: userRepo}
+func NewPayrollService(payrollRepo repository.PayrollRepository, payrollSettingRepo repository.PayrollSettingRepository, userRepo repository.UserRepository, attendanceRepo repository.AttendanceRepository) PayrollService {
+	return &payrollService{payrollRepo: payrollRepo, payrollSettingRepo: payrollSettingRepo, userRepo: userRepo, attendanceRepo: attendanceRepo}
 }
 
 func bpjsDeduction(additionalData datatypes.JSON) float64 {
@@ -354,15 +355,44 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 		return nil, err
 	}
 
+	loc, _ := time.LoadLocation("Asia/Jakarta")
+	localNow := time.Now().In(loc)
+	year, month, _ := localNow.Date()
+	startLocal := time.Date(year, month, 1, 0, 0, 0, 0, loc)
+	endLocal := startLocal.AddDate(0, 1, 0)
+
 	additionalData := make(map[string]interface{})
-	overtimeRate := 0.0
+	hourlyOvertimeRate := 0.0
 
 	for _, setting := range payrollSetting {
 		if setting.ConfigKey == "hourly_overtime_rate" {
-			overtimeRate = setting.Value * 2
+			hourlyOvertimeRate = setting.Value
 		} else {
 			additionalData[setting.ConfigKey] = setting.Value
 		}
+	}
+
+	lastDay := endLocal.AddDate(0, 0, -1)
+	attendanceLogs, err := s.attendanceRepo.GetLogsByUserID(ctx, employee.ID, &startLocal, &lastDay)
+	if err != nil {
+		return nil, err
+	}
+	totalOvertimeHours := 0
+	totalHadir := 0
+	for _, log := range attendanceLogs {
+		if log.OvertimeHours != nil {
+			totalOvertimeHours += *log.OvertimeHours
+		}
+		if log.Status == model.AttendanceStatusPresent {
+			totalHadir++
+		}
+	}
+	overtimeRate := hourlyOvertimeRate * float64(totalOvertimeHours)
+
+	// Potongan absen: gaji penuh jika hadir >= 25, else (25 - hadir) * (gajiPokok / 30)
+	attendanceDeduction := 0.0
+	if totalHadir < 25 {
+		attendanceDeduction = float64(25-totalHadir) * (basicSalary / 30)
 	}
 
 	dataBytes, err := json.Marshal(additionalData)
@@ -372,22 +402,17 @@ func (s *payrollService) GenerateOne(ctx context.Context, employeeID string) (*m
 
 	gross := basicSalary + positionAllowance + otherAllowance + overtimeRate
 	payroll := &model.Payroll{
-		EmployeeID:        employee.ID,
-		BasicSalary:       basicSalary,
-		PositionAllowance: positionAllowance,
-		OtherAllowance:    otherAllowance,
-		OvertimeRate:      overtimeRate,
-		Status:            model.PayrollStatusUnsent,
-		GrossSalary:       gross,
-		NetSalary:         gross - bpjsDeduction(datatypes.JSON(dataBytes)),
-		AdditionalData:    datatypes.JSON(dataBytes),
+		EmployeeID:          employee.ID,
+		BasicSalary:         basicSalary,
+		PositionAllowance:   positionAllowance,
+		OtherAllowance:      otherAllowance,
+		OvertimeRate:        overtimeRate,
+		AttendanceDeduction: attendanceDeduction,
+		Status:              model.PayrollStatusUnsent,
+		GrossSalary:         gross,
+		NetSalary:           gross - attendanceDeduction - bpjsDeduction(datatypes.JSON(dataBytes)),
+		AdditionalData:      datatypes.JSON(dataBytes),
 	}
-
-	loc, _ := time.LoadLocation("Asia/Jakarta")
-	localNow := time.Now().In(loc)
-	year, month, _ := localNow.Date()
-	startLocal := time.Date(year, month, 1, 0, 0, 0, 0, loc)
-	endLocal := startLocal.AddDate(0, 1, 0)
 
 	existing, err := s.payrollRepo.GetByEmployeeIDAndCreatedAtRange(ctx, employee.ID, startLocal.UTC(), endLocal.UTC())
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -439,10 +464,10 @@ func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, erro
 	}
 
 	additionalData := make(map[string]interface{})
-	overtimeRate := 0.0
+	hourlyOvertimeRate := 0.0
 	for _, setting := range payrollSetting {
 		if setting.ConfigKey == "hourly_overtime_rate" {
-			overtimeRate = setting.Value * 2
+			hourlyOvertimeRate = setting.Value
 		} else {
 			additionalData[setting.ConfigKey] = setting.Value
 		}
@@ -461,6 +486,21 @@ func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, erro
 	endLocal := startLocal.AddDate(0, 1, 0)
 	startUTC := startLocal.UTC()
 	endUTC := endLocal.UTC()
+
+	attendanceRows, err := s.attendanceRepo.GetByMonthWithUser(ctx, int(month), year)
+	if err != nil {
+		return nil, err
+	}
+	overtimeByEmployeeID := make(map[string]int)
+	hadirByEmployeeID := make(map[string]int)
+	for _, row := range attendanceRows {
+		if row.OvertimeHours != nil {
+			overtimeByEmployeeID[row.UserID] += *row.OvertimeHours
+		}
+		if row.Status == model.AttendanceStatusPresent {
+			hadirByEmployeeID[row.UserID]++
+		}
+	}
 
 	employeeIDs := make([]string, 0, len(employees))
 	employeeMap := make(map[string]*model.User, len(employees))
@@ -502,17 +542,25 @@ func (s *payrollService) GenerateAll(ctx context.Context) ([]model.Payroll, erro
 			otherAllowance = *employee.Profile.OtherAllowance
 		}
 
-		empGross := basicSalary + positionAllowance + otherAllowance + overtimeRate
+		empOvertimeRate := hourlyOvertimeRate * float64(overtimeByEmployeeID[employee.ID])
+		empGross := basicSalary + positionAllowance + otherAllowance + empOvertimeRate
+		// Potongan absen: gaji penuh jika hadir >= 25, else (25 - hadir) * (gajiPokok / 30)
+		empTotalHadir := hadirByEmployeeID[employee.ID]
+		empAttendanceDeduction := 0.0
+		if empTotalHadir < 25 {
+			empAttendanceDeduction = float64(25-empTotalHadir) * (basicSalary / 30)
+		}
 		payroll := &model.Payroll{
-			EmployeeID:        employee.ID,
-			BasicSalary:       basicSalary,
-			PositionAllowance: positionAllowance,
-			OtherAllowance:    otherAllowance,
-			OvertimeRate:      overtimeRate,
-			Status:            model.PayrollStatusUnsent,
-			GrossSalary:       empGross,
-			NetSalary:         empGross - bpjsDeduction(additionalJSON),
-			AdditionalData:    additionalJSON,
+			EmployeeID:          employee.ID,
+			BasicSalary:         basicSalary,
+			PositionAllowance:   positionAllowance,
+			OtherAllowance:      otherAllowance,
+			OvertimeRate:        empOvertimeRate,
+			AttendanceDeduction: empAttendanceDeduction,
+			Status:              model.PayrollStatusUnsent,
+			GrossSalary:         empGross,
+			NetSalary:           empGross - empAttendanceDeduction - bpjsDeduction(additionalJSON),
+			AdditionalData:      additionalJSON,
 		}
 
 		if existing, ok := existingByEmployeeID[employee.ID]; ok {
@@ -684,7 +732,7 @@ func (s *payrollService) SendPayroll(ctx context.Context, id string) (*model.Pay
 		Data: map[string]any{
 			"EmployeeName": employee.FullName,
 			"PayrollDate":  time.Now().In(time.FixedZone("WIB", 7*3600)).Format("02 January 2006"),
-			"NetSalary":    payroll.NetSalary,
+			"NetSalary":    formatRupiah(payroll.NetSalary),
 			"PayrollURL":   payrollUrl,
 		},
 	})
@@ -702,4 +750,21 @@ func (s *payrollService) SendPayroll(ctx context.Context, id string) (*model.Pay
 	}
 
 	return updated, nil
+}
+
+func formatRupiah(amount float64) string {
+	intAmount := int64(amount)
+	s := fmt.Sprintf("%d", intAmount)
+	n := len(s)
+	if n <= 3 {
+		return "Rp " + s
+	}
+	result := make([]byte, 0, n+(n-1)/3)
+	for i, c := range s {
+		if i > 0 && (n-i)%3 == 0 {
+			result = append(result, '.')
+		}
+		result = append(result, byte(c))
+	}
+	return "Rp " + string(result)
 }

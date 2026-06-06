@@ -12,6 +12,14 @@ type rootData struct {
 	AppVersion string `json:"app_version"`
 }
 
+// Root godoc
+//
+//	@Summary		Root endpoint
+//	@Description	Mengembalikan informasi dasar API
+//	@Tags			General
+//	@Produce		json
+//	@Success		200	{object}	common.Response[rootData]
+//	@Router			/ [get]
 func Root(c *gin.Context) {
 	payload := rootData{
 		Message:    "Welcome to the Absensi King Royal API",

@@ -135,6 +135,9 @@ func (s *userService) Create(ctx context.Context, payload request.UserCreateRequ
 
 	go func() {
 		env := config.GetEnv()
+		if env == nil {
+			return
+		}
 		err := utils.SendEmail(utils.EmailParams{
 			FromName:   env.SMTPFromName,
 			FromEmail:  env.SMTPFromEmail,
