@@ -30,7 +30,7 @@ air:
 	air
 
 build:
-	go build -o bin/$(APP_NAME) ./cmd/api
+	go build -o bin/api ./cmd/api
 
 migrate-up:
 	@$$url = '$(DATABASE_URL)'; if ($$url -notmatch '@tcp\(|@unix\(') { $$url = $$url -replace '@([^/]+:\d+)/', '@tcp($$1)/' }; migrate -path migrations -database $$url up

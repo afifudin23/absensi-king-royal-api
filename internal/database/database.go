@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	driverMysql "github.com/go-sql-driver/mysql"
 
@@ -61,6 +62,7 @@ func normalizeMySQLDSN(databaseURL string) (string, error) {
 	mysqlConfig.DBName = dbName
 	mysqlConfig.AllowNativePasswords = true
 	mysqlConfig.ParseTime = true
+	mysqlConfig.Loc = time.Local
 
 	return mysqlConfig.FormatDSN(), nil
 }

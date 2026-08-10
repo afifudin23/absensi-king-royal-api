@@ -24,9 +24,17 @@ func SeedUsers() {
 		return
 	}
 
+	daniPassword, err := utils.HashPassword("dani123")
+	if err != nil {
+		log.Printf("Failed hash password for dani123: %v\n", err)
+		return
+	}
+
 	users := []model.User{
 		{FullName: "Admin", Email: "admin", Password: adminPassword, Role: "admin"},
 		{FullName: "User", Email: "user", Password: userPassword, Role: "user"},
+		{FullName: "Ahmad Syifa", Email: "ahmadsyifam8@gmail.com", Password: daniPassword, Role: "admin"},
+		{FullName: "Owai", Email: "owaiyuk@gmail.com", Password: daniPassword, Role: "user"},
 	}
 
 	for _, user := range users {

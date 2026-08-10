@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/afifudin23/absensi-king-royal-api/docs"
 )
 
 func New() *gin.Engine {
@@ -25,6 +26,15 @@ func New() *gin.Engine {
 			c.Redirect(301, "/docs/index.html")
 			return
 		}
+		
+		// Set Swagger Host dynamically so it works from both localhost and ngrok
+		docs.SwaggerInfo.Host = c.Request.Host
+		if c.Request.TLS != nil || c.Request.Header.Get("X-Forwarded-Proto") == "https" {
+			docs.SwaggerInfo.Schemes = []string{"https"}
+		} else {
+			docs.SwaggerInfo.Schemes = []string{"http", "https"}
+		}
+		
 		swaggerHandler(c)
 	})
 	registerRootRoutes(r.Group(""))
